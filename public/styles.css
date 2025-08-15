@@ -1,0 +1,43 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #0f172a; background: #f8fafc; }
+
+.container { max-width: 680px; margin: 0 auto; padding: 24px; }
+
+h1 { margin: 0 0 16px; font-size: 28px; }
+
+.controls { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+.controls input { width: 120px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; }
+.controls button { padding: 10px 16px; border: none; border-radius: 8px; background: #2563eb; color: white; cursor: pointer; }
+.controls button.secondary { background: #64748b; }
+.controls button:hover { filter: brightness(0.95); }
+
+.display { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+.remaining { font-size: 64px; font-weight: 700; letter-spacing: 1px; text-align: center; }
+.status { text-align: center; margin-top: 8px; font-weight: 600; }
+.status.idle { color: #334155; }
+.status.running { color: #16a34a; }
+.status.done { color: #dc2626; }
+
+details { margin-top: 16px; }
+
+/* Flash screen red overlay when countdown completes */
+.flash-overlay {
+	position: fixed;
+	inset: 0;
+	background: #ef4444; /* red-500 */
+	opacity: 0;
+	pointer-events: none;
+	z-index: 9999;
+}
+
+.flash-overlay.show {
+	animation: flash-red 800ms ease-in-out 1;
+}
+
+@keyframes flash-red {
+	0% { opacity: 0; }
+	10% { opacity: 0.25; }
+	35% { opacity: 0.55; }
+	60% { opacity: 0.35; }
+	100% { opacity: 0; }
+}

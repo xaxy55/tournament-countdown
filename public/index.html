@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shared Countdown</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Shared Countdown</h1>
+
+    <div class="controls">
+      <label>
+        Duration (seconds):
+        <input id="duration" type="number" min="0" step="1" value="30" />
+      </label>
+      <button id="startBtn">Start</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+    </div>
+
+    <div class="display">
+      <div id="remaining" class="remaining">00:30.0</div>
+      <div id="status" class="status idle">Idle</div>
+    </div>
+
+    <details>
+      <summary>API</summary>
+      <p>POST /api/start with JSON { "durationMs": number }</p>
+      <p>POST /api/reset</p>
+      <p>GET /api/state</p>
+    </details>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/client.js"></script>
+  <div id="flash" class="flash-overlay" aria-hidden="true"></div>
+</body>
+</html>
