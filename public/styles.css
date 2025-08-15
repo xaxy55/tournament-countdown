@@ -3,7 +3,7 @@ html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Seg
 
 /* Full-screen layout */
 body { display: grid; place-items: center; }
-.container { width: 100%; height: 100%; display: grid; grid-template-rows: auto auto 1fr auto; padding: clamp(12px, 2vmin, 24px); }
+.container { width: 100%; height: 100%; display: grid; grid-template-rows: auto 1fr auto; padding: clamp(12px, 2vmin, 24px); }
 
 h1 { margin: 0; font-size: clamp(20px, 2.6vmin, 36px); letter-spacing: 1px; color: #93c5fd; text-align: center; }
 
@@ -43,13 +43,13 @@ body.is-fullscreen.can-start { cursor: pointer; }
 }
 
 .flash-overlay.show {
-	animation: flash-red 800ms ease-in-out 1;
+	animation: flash-red 1100ms ease-in-out 1;
 }
 
 @keyframes flash-red {
 	0% { opacity: 0; }
-	10% { opacity: 0.25; }
-	35% { opacity: 0.55; }
-	60% { opacity: 0.35; }
+		10% { opacity: 0.35; }
+		35% { opacity: 0.7; }
+		60% { opacity: 0.45; }
 	100% { opacity: 0; }
 }

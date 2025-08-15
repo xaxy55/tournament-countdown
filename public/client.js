@@ -6,10 +6,17 @@ const resetBtn = document.getElementById('resetBtn');
 const fsBtn = document.getElementById('fsBtn');
 
 const socket = io();
-const flashEl = document.getElementById('flash');
+let flashEl = document.getElementById('flash');
 
 function triggerFlash() {
-  if (!flashEl) return;
+  if (!flashEl) {
+    // Lazily create if missing
+    flashEl = document.createElement('div');
+    flashEl.id = 'flash';
+    flashEl.className = 'flash-overlay';
+    flashEl.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(flashEl);
+  }
   // Restart animation by toggling class
   flashEl.classList.remove('show');
   // Force reflow to reset animation state
