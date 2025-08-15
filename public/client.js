@@ -31,6 +31,14 @@ function formatMs(ms) {
 
 function setState(state) {
   remainingEl.textContent = formatMs(state.remainingMs ?? 0);
+  // Slide animation on last digit changes while running
+  if (state.running) {
+    const tickParity = Math.floor((state.remainingMs ?? 0) / 100) % 2; // toggle every 100ms
+    remainingEl.classList.toggle('slide-left', tickParity === 0);
+    remainingEl.classList.toggle('slide-right', tickParity === 1);
+  } else {
+    remainingEl.classList.remove('slide-left', 'slide-right');
+  }
   if (state.running) {
     statusEl.textContent = 'Running';
     statusEl.className = 'status running';

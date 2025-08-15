@@ -17,7 +17,9 @@ h1 { margin: 0; font-size: clamp(20px, 2.6vmin, 36px); letter-spacing: 1px; colo
 .controls button:active { transform: translateY(1px); }
 
 .display { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
-.remaining { font-size: clamp(80px, 22vmin, 260px); font-weight: 800; letter-spacing: 2px; text-align: center; color: #f8fafc; text-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+.remaining { font-size: clamp(100px, 28vmin, 360px); font-weight: 800; letter-spacing: 2px; text-align: center; color: #f8fafc; text-shadow: 0 2px 6px rgba(0,0,0,0.5); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1, 'lnum' 1; transition: transform 140ms ease-out; will-change: transform; }
+.remaining.slide-left { transform: translateX(-0.8vw); }
+.remaining.slide-right { transform: translateX(0.8vw); }
 .status { text-align: center; margin-top: 8px; font-weight: 700; font-size: clamp(14px, 2vmin, 20px); letter-spacing: 1px; }
 .status.idle { color: #94a3b8; }
 .status.running { color: #34d399; }
