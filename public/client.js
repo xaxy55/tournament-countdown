@@ -3,6 +3,7 @@ const statusEl = document.getElementById('status');
 const durationInput = document.getElementById('duration');
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
+const fsBtn = document.getElementById('fsBtn');
 
 const socket = io();
 const flashEl = document.getElementById('flash');
@@ -59,6 +60,26 @@ resetBtn.addEventListener('click', async () => {
   const res = await fetch('/api/reset', { method: 'POST' });
   const data = await res.json();
   setState(data.state);
+});
+
+// Fullscreen toggle
+fsBtn?.addEventListener('click', async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+      fsBtn.textContent = 'Exit Fullscreen';
+    } else {
+      await document.exitFullscreen();
+      fsBtn.textContent = 'Fullscreen';
+    }
+  } catch (e) {
+    console.error('Fullscreen toggle failed', e);
+  }
+});
+
+document.addEventListener('fullscreenchange', () => {
+  if (!fsBtn) return;
+  fsBtn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
 });
 
 socket.on('state', (state) => setState(state));
