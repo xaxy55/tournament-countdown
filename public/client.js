@@ -34,13 +34,16 @@ function setState(state) {
   if (state.running) {
     statusEl.textContent = 'Running';
     statusEl.className = 'status running';
+  document.body.classList.remove('can-start');
   } else if ((state.remainingMs ?? 0) === 0 && state.endTime) {
     statusEl.textContent = 'Done';
     statusEl.className = 'status done';
   triggerFlash();
+  document.body.classList.add('can-start');
   } else {
     statusEl.textContent = 'Idle';
     statusEl.className = 'status idle';
+  document.body.classList.add('can-start');
   }
 }
 
@@ -80,6 +83,30 @@ fsBtn?.addEventListener('click', async () => {
 document.addEventListener('fullscreenchange', () => {
   if (!fsBtn) return;
   fsBtn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
+  document.body.classList.toggle('is-fullscreen', !!document.fullscreenElement);
+});
+
+// Click-anywhere to start when idle/done (non-running)
+document.addEventListener('click', async (e) => {
+  // Ignore clicks on controls, inputs, and links
+  const tag = (e.target?.tagName || '').toLowerCase();
+  if (['button', 'input', 'label', 'a', 'details', 'summary'].includes(tag)) return;
+
+  // Only when allowed
+  if (!document.body.classList.contains('can-start')) return;
+
+  const seconds = Math.max(0, Math.floor(Number(durationInput.value || 0)) || 30);
+  try {
+    const res = await fetch('/api/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ durationMs: seconds * 1000 })
+    });
+    const data = await res.json();
+    setState(data.state);
+  } catch (err) {
+    console.error('Failed to start via click-anywhere', err);
+  }
 });
 
 socket.on('state', (state) => setState(state));
