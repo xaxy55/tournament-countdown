@@ -1,6 +1,6 @@
-# Shared Countdown Web
+# tournament-countdown
 
-A tiny real-time shared countdown web app. Everyone sees the same timer. You can start/reset via UI or HTTP API.
+A tiny real-time countdown web app. Everyone sees the same timer. You can start/reset via UI or HTTP API.
 
 ## Features
 - Adjustable duration (default 30s)
