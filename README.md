@@ -1,15 +1,20 @@
 # tournament-countdown
 
-[![CodeQL](https://github.com/xaxy55/tournament-countdown/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/xaxy55/tournament-countdown/actions/workflows/github-code-scanning/codeql)
-
 <p align="center">
+	<a href="https://github.com/xaxy55/tournament-countdown/actions/workflows/github-code-scanning/codeql" target="_blank" rel="noopener">
+		<img src="https://github.com/xaxy55/tournament-countdown/actions/workflows/github-code-scanning/codeql/badge.svg" alt="CodeQL" />
+	</a>
+	&nbsp;&nbsp;
 	<a href="https://buymeacoffee.com/xaxy55" target="_blank" rel="noopener">
-		<img alt="Buy me a pizza" src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20pizza&emoji=%F0%9F%8D%95&slug=xaxy55&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" />
+		<img alt="Buy me a pizza" width="200" src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20pizza&emoji=%F0%9F%8D%95&slug=xaxy55&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" />
 	</a>
 </p>
-
-
-A tiny real-time countdown web app. Everyone sees the same timer. You can start/reset via UI or HTTP API.
+<p align="center">
+	A tiny real-time countdown web app. Everyone sees the same timer.
+	<br/>
+	Start/reset via UI or HTTP API.
+  
+</p>
 
 ## Features
 - Adjustable duration (default 30s)
@@ -25,27 +30,27 @@ Home
 
 <p align="center">
 	<img alt="Home screen with large countdown and controls" src="./docs/screenshots/home.png" width="800">
-	<br>
+	<br/>
 	<em>Large shared timer, preset buttons, and a gear for settings.</em>
-	</br>
+
 </p>
 
 Settings
 
 <p align="center">
 	<img alt="Settings screen with Timer, GPIO, Sound, Theme sections" src="./docs/screenshots/settings.png" width="800">
-	<br>
+	<br/>
 	<em>Configure defaults, Raspberry Pi relay, end sound, and theme.</em>
-	</br>
+
 </p>
 
 Theme examples
 
 <p align="center">
 	<img alt="Theme examples showing default, custom, and high contrast" src="./docs/screenshots/theme.png" width="800">
-	<br>
+	<br/>
 	<em>Use the Theme section to customize colors.</em>
-	</br>
+
 </p>
 
 ## Run locally
