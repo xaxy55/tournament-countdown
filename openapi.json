@@ -150,9 +150,21 @@
               "blinkDurationMs": { "type": "integer", "minimum": 0 }
             },
             "required": ["enabled", "relayPin", "relayActiveHigh", "blinkHz", "blinkDurationMs"]
+          },
+          "theme": {
+            "type": "object",
+            "properties": {
+              "enabled": { "type": "boolean" },
+              "colors": {
+                "type": "object",
+                "additionalProperties": { "type": "string", "description": "CSS color value" },
+                "description": "Map of CSS variable names (without --) to color values"
+              }
+            },
+            "required": ["enabled", "colors"]
           }
         },
-        "required": ["defaultDurationSeconds", "presets", "gpio"]
+        "required": ["defaultDurationSeconds", "presets", "gpio", "theme"]
       },
       "State": {
         "type": "object",

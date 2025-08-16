@@ -162,6 +162,10 @@ const settings = {
     relayActiveHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')),
     blinkHz: Number(process.env.BLINK_HZ ?? 2),
     blinkDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
+  },
+  theme: {
+    enabled: false,
+    colors: {}
   }
 };
 
@@ -230,13 +234,18 @@ app.post('/api/settings', (req, res) => {
         blinkDurationMs: Number.isFinite(body.gpio?.blinkDurationMs)
           ? Math.max(0, Math.floor(Number(body.gpio.blinkDurationMs)))
           : settings.gpio.blinkDurationMs
+      },
+      theme: {
+        enabled: !!body.theme?.enabled,
+        colors: typeof body.theme?.colors === 'object' && body.theme?.colors !== null ? body.theme.colors : settings.theme.colors
       }
     };
 
     // Update in-memory settings
     settings.defaultDurationSeconds = next.defaultDurationSeconds;
     settings.presets = next.presets;
-    settings.gpio = next.gpio;
+  settings.gpio = next.gpio;
+  settings.theme = next.theme;
 
     // Apply changes to relay controller at runtime
     try {
@@ -254,7 +263,7 @@ app.post('/api/settings', (req, res) => {
       console.warn('[GPIO] Applying settings failed:', e?.message || e);
     }
 
-    res.json({ ok: true, settings });
+  res.json({ ok: true, settings });
   } catch (e) {
     res.status(400).json({ ok: false, error: 'Invalid settings' });
   }

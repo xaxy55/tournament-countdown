@@ -40,6 +40,26 @@
         </label>
       </fieldset>
 
+      <fieldset>
+        <legend>Theme</legend>
+        <label class="inline"><input type="checkbox" id="themeEnabled"> Enable custom theme</label>
+        <label>Background color
+          <input type="color" id="themeBg" value="#0b1020">
+        </label>
+        <label>Text color
+          <input type="color" id="themeText" value="#e5e7eb">
+        </label>
+        <label>Heading color
+          <input type="color" id="themeHeading" value="#93c5fd">
+        </label>
+        <label>Primary start
+          <input type="color" id="themePrimaryStart" value="#2563eb">
+        </label>
+        <label>Primary end
+          <input type="color" id="themePrimaryEnd" value="#1d4ed8">
+        </label>
+      </fieldset>
+
   <div class="settings-actions">
         <button type="submit">Save</button>
         <a class="secondary" href="/">Back</a>
@@ -48,6 +68,7 @@
     </form>
   </main>
 
+  <script src="/theme.js"></script>
   <script>
     async function loadSettings() {
       const res = await fetch('/api/settings');
@@ -60,6 +81,16 @@
       document.getElementById('relayActiveHigh').value = String(!!s.gpio?.relayActiveHigh);
       document.getElementById('blinkHz').value = s.gpio?.blinkHz ?? 2;
       document.getElementById('blinkDurationMs').value = s.gpio?.blinkDurationMs ?? 10000;
+  // theme
+  const t = s.theme || {};
+  document.getElementById('themeEnabled').checked = !!t.enabled;
+  const c = t.colors || {};
+  if (c.bg) document.getElementById('themeBg').value = c.bg;
+  if (c.text) document.getElementById('themeText').value = c.text;
+  if (c.heading) document.getElementById('themeHeading').value = c.heading;
+  if (c.primaryStart) document.getElementById('themePrimaryStart').value = c.primaryStart;
+  if (c.primaryEnd) document.getElementById('themePrimaryEnd').value = c.primaryEnd;
+  try { window.__applyTheme(t); } catch {}
     }
 
     document.getElementById('settingsForm').addEventListener('submit', async (e) => {
@@ -73,6 +104,16 @@
           relayActiveHigh: document.getElementById('relayActiveHigh').value === 'true',
           blinkHz: Number(document.getElementById('blinkHz').value || 2),
           blinkDurationMs: Number(document.getElementById('blinkDurationMs').value || 10000),
+        },
+        theme: {
+          enabled: document.getElementById('themeEnabled').checked,
+          colors: {
+            bg: document.getElementById('themeBg').value,
+            text: document.getElementById('themeText').value,
+            heading: document.getElementById('themeHeading').value,
+            primaryStart: document.getElementById('themePrimaryStart').value,
+            primaryEnd: document.getElementById('themePrimaryEnd').value
+          }
         }
       };
       const status = document.getElementById('saveStatus');
@@ -82,6 +123,7 @@
         const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const data = await res.json();
         if (data.ok) {
+          try { window.__applyTheme(payload.theme); } catch {}
           status.textContent = 'Saved';
           status.className = 'status done';
           setTimeout(() => { status.textContent = 'Idle'; status.className = 'status idle'; }, 1500);
