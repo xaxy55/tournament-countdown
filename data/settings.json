@@ -1,0 +1,30 @@
+{
+  "defaultDurationSeconds": 45,
+  "presets": [
+    30,
+    45,
+    60
+  ],
+  "gpio": {
+    "enabled": false,
+    "relayPin": 17,
+    "relayActiveHigh": true,
+    "blinkHz": 2,
+    "blinkDurationMs": 10000
+  },
+  "theme": {
+    "enabled": true,
+    "colors": {
+      "bg": "#0b1020",
+      "text": "#e5e7eb",
+      "heading": "#93c5fd",
+      "primaryStart": "#2563eb",
+      "primaryEnd": "#1d4ed8"
+    }
+  },
+  "sound": {
+    "enabled": true,
+    "endUrl": "",
+    "volume": 1
+  }
+}

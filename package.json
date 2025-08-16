@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node server.js",
   "start": "NODE_ENV=production node server.js",
-  "test": "NODE_ENV=test node --test"
+  "test": "NODE_ENV=test node --test",
+  "shots": "node scripts/capture-screenshots.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -16,5 +17,8 @@
   },
   "optionalDependencies": {
     "onoff": "^6.0.3"
+  },
+  "devDependencies": {
+    "playwright": "^1.46.0"
   }
 }

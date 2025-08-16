@@ -138,3 +138,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .mailmap
+ 
+# Ignore old mockup screenshots
+/docs/screenshots/*.svg

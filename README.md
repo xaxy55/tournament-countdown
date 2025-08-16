@@ -10,6 +10,35 @@ A tiny real-time countdown web app. Everyone sees the same timer. You can start/
 - Real-time sync to all clients (Socket.IO)
 - Optional Raspberry Pi GPIO relay blinking when time is up
 
+## Screenshots
+
+Home
+
+<p align="center">
+	<img alt="Home screen with large countdown and controls" src="./docs/screenshots/home.png" width="800">
+	<br>
+	<em>Large shared timer, preset buttons, and a gear for settings.</em>
+	</br>
+</p>
+
+Settings
+
+<p align="center">
+	<img alt="Settings screen with Timer, GPIO, Sound, Theme sections" src="./docs/screenshots/settings.png" width="800">
+	<br>
+	<em>Configure defaults, Raspberry Pi relay, end sound, and theme.</em>
+	</br>
+</p>
+
+Theme examples
+
+<p align="center">
+	<img alt="Theme examples showing default, custom, and high contrast" src="./docs/screenshots/theme.png" width="800">
+	<br>
+	<em>Use the Theme section to customize colors.</em>
+	</br>
+</p>
+
 ## Run locally
 
 1. Install dependencies
