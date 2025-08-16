@@ -173,6 +173,12 @@ body.is-fullscreen.can-start { cursor: pointer; }
 .settings-actions button:active, .settings-actions a.secondary:active { transform: translateY(1px); }
 .mt-sm { margin-top: 8px; }
 
+/* Modifier for left-aligned control rows within fieldsets */
+.settings-actions.inline {
+	justify-content: flex-start;
+	gap: 8px;
+}
+
 /* Responsive: use two columns for settings on wider screens */
 @media (min-width: 900px) {
 	.settings-form fieldset {
