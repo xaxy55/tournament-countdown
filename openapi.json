@@ -9,6 +9,56 @@
     { "url": "/", "description": "Current server" }
   ],
   "paths": {
+    "/api/settings": {
+      "get": {
+        "summary": "Get app settings",
+        "responses": {
+          "200": {
+            "description": "Current settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "settings": { "$ref": "#/components/schemas/Settings" } },
+                  "required": ["settings"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Update app settings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Settings" },
+              "example": {
+                "defaultDurationSeconds": 45,
+                "presets": [30, 45, 60],
+                "gpio": { "enabled": false, "relayPin": 17, "relayActiveHigh": true, "blinkHz": 2, "blinkDurationMs": 10000 }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "ok": { "type": "boolean" }, "settings": { "$ref": "#/components/schemas/Settings" } },
+                  "required": ["ok", "settings"]
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid settings" }
+        }
+      }
+    },
     "/api/state": {
       "get": {
         "summary": "Get current countdown state",
@@ -85,6 +135,25 @@
   },
   "components": {
     "schemas": {
+      "Settings": {
+        "type": "object",
+        "properties": {
+          "defaultDurationSeconds": { "type": "integer", "minimum": 0 },
+          "presets": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+          "gpio": {
+            "type": "object",
+            "properties": {
+              "enabled": { "type": "boolean" },
+              "relayPin": { "type": "integer", "minimum": 0, "description": "BCM pin number" },
+              "relayActiveHigh": { "type": "boolean" },
+              "blinkHz": { "type": "number", "minimum": 0 },
+              "blinkDurationMs": { "type": "integer", "minimum": 0 }
+            },
+            "required": ["enabled", "relayPin", "relayActiveHigh", "blinkHz", "blinkDurationMs"]
+          }
+        },
+        "required": ["defaultDurationSeconds", "presets", "gpio"]
+      },
       "State": {
         "type": "object",
         "properties": {

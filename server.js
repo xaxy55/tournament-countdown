@@ -144,6 +144,27 @@ const relay = new RelayController({
 });
 relay.init();
 
+// App settings (in-memory)
+const parsePresetsEnv = (val) => {
+  if (!val) return [30, 45, 60];
+  const arr = String(val).split(',').map((x) => Number(String(x).trim())).filter((n) => Number.isFinite(n) && n >= 0);
+  return arr.length ? arr : [30, 45, 60];
+};
+
+const settings = {
+  defaultDurationSeconds: Number.isFinite(Number(process.env.DEFAULT_DURATION_SECONDS))
+    ? Math.max(0, Math.floor(Number(process.env.DEFAULT_DURATION_SECONDS)))
+    : 45,
+  presets: parsePresetsEnv(process.env.PRESETS),
+  gpio: {
+    enabled: gpioEnabled,
+    relayPin: Number(process.env.RELAY_PIN ?? 17),
+    relayActiveHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')),
+    blinkHz: Number(process.env.BLINK_HZ ?? 2),
+    blinkDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
+  }
+};
+
 function getState() {
   const now = Date.now();
   const remainingMs = countdown.running && countdown.endTime ? Math.max(0, countdown.endTime - now) : 0;
@@ -179,6 +200,66 @@ function startTicker() {
 }
 
 // API endpoints
+app.get('/api/settings', (_req, res) => {
+  res.json({ settings });
+});
+
+app.post('/api/settings', (req, res) => {
+  const body = req.body || {};
+  try {
+    const next = {
+      defaultDurationSeconds: Number.isFinite(body.defaultDurationSeconds)
+        ? Math.max(0, Math.floor(body.defaultDurationSeconds))
+        : settings.defaultDurationSeconds,
+      presets: Array.isArray(body.presets)
+        ? body.presets
+            .map((n) => Math.max(0, Math.floor(Number(n))))
+            .filter((n) => Number.isFinite(n))
+        : settings.presets,
+      gpio: {
+        enabled: body.gpio?.enabled ?? settings.gpio.enabled,
+        relayPin: Number.isFinite(body.gpio?.relayPin)
+          ? Math.max(0, Math.floor(body.gpio.relayPin))
+          : settings.gpio.relayPin,
+        relayActiveHigh: typeof body.gpio?.relayActiveHigh === 'boolean'
+          ? body.gpio.relayActiveHigh
+          : settings.gpio.relayActiveHigh,
+        blinkHz: Number.isFinite(body.gpio?.blinkHz)
+          ? Math.max(0, Number(body.gpio.blinkHz))
+          : settings.gpio.blinkHz,
+        blinkDurationMs: Number.isFinite(body.gpio?.blinkDurationMs)
+          ? Math.max(0, Math.floor(Number(body.gpio.blinkDurationMs)))
+          : settings.gpio.blinkDurationMs
+      }
+    };
+
+    // Update in-memory settings
+    settings.defaultDurationSeconds = next.defaultDurationSeconds;
+    settings.presets = next.presets;
+    settings.gpio = next.gpio;
+
+    // Apply changes to relay controller at runtime
+    try {
+      const needsReinit = relay.pinNumber !== next.gpio.relayPin || relay.activeHigh !== next.gpio.relayActiveHigh;
+      relay.enabled = !!next.gpio.enabled;
+      relay.hz = Number(next.gpio.blinkHz);
+      relay.defaultDurationMs = Number(next.gpio.blinkDurationMs);
+      if (needsReinit) {
+        try { relay.dispose(); } catch {}
+        relay.pinNumber = next.gpio.relayPin;
+        relay.activeHigh = next.gpio.relayActiveHigh;
+        if (relay.enabled) relay.init();
+      }
+    } catch (e) {
+      console.warn('[GPIO] Applying settings failed:', e?.message || e);
+    }
+
+    res.json({ ok: true, settings });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: 'Invalid settings' });
+  }
+});
+
 app.post('/api/start', (req, res) => {
   const { durationMs } = req.body || {};
   const d = Number.isFinite(durationMs) ? Math.max(0, Math.floor(durationMs)) : countdown.durationMs;

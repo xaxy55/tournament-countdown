@@ -9,7 +9,7 @@
 <body>
   <main class="container">
     <h1>Settings</h1>
-    <form id="settingsForm">
+    <form id="settingsForm" class="settings-form" autocomplete="off">
       <fieldset>
         <legend>Timer</legend>
         <label>Default duration (seconds)
@@ -22,7 +22,7 @@
 
       <fieldset>
         <legend>GPIO / Relay</legend>
-        <label><input type="checkbox" id="gpioEnabled"> Enable GPIO</label>
+        <label class="inline"><input type="checkbox" id="gpioEnabled"> Enable GPIO</label>
         <label>Relay pin (BCM)
           <input type="number" id="relayPin" min="0" step="1">
         </label>
