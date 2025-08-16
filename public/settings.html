@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings – Tournament Countdown</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Settings</h1>
+    <form id="settingsForm">
+      <fieldset>
+        <legend>Timer</legend>
+        <label>Default duration (seconds)
+          <input type="number" id="defaultDurationSeconds" min="0" step="1">
+        </label>
+        <label>Presets (comma separated seconds)
+          <input type="text" id="presets" placeholder="30,45,60">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>GPIO / Relay</legend>
+        <label><input type="checkbox" id="gpioEnabled"> Enable GPIO</label>
+        <label>Relay pin (BCM)
+          <input type="number" id="relayPin" min="0" step="1">
+        </label>
+        <label>Relay active high
+          <select id="relayActiveHigh">
+            <option value="true">Active HIGH</option>
+            <option value="false">Active LOW</option>
+          </select>
+        </label>
+        <label>Blink Hz
+          <input type="number" id="blinkHz" min="0" step="0.1">
+        </label>
+        <label>Blink duration (ms)
+          <input type="number" id="blinkDurationMs" min="0" step="100">
+        </label>
+      </fieldset>
+
+  <div class="settings-actions">
+        <button type="submit">Save</button>
+        <a class="secondary" href="/">Back</a>
+      </div>
+  <div id="saveStatus" class="status idle mt-sm" aria-live="polite">Idle</div>
+    </form>
+  </main>
+
+  <script>
+    async function loadSettings() {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      const s = data.settings || {};
+      document.getElementById('defaultDurationSeconds').value = s.defaultDurationSeconds ?? 45;
+      document.getElementById('presets').value = (s.presets || []).join(',');
+      document.getElementById('gpioEnabled').checked = !!s.gpio?.enabled;
+      document.getElementById('relayPin').value = s.gpio?.relayPin ?? 17;
+      document.getElementById('relayActiveHigh').value = String(!!s.gpio?.relayActiveHigh);
+      document.getElementById('blinkHz').value = s.gpio?.blinkHz ?? 2;
+      document.getElementById('blinkDurationMs').value = s.gpio?.blinkDurationMs ?? 10000;
+    }
+
+    document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        defaultDurationSeconds: Number(document.getElementById('defaultDurationSeconds').value || 0),
+        presets: String(document.getElementById('presets').value || '').split(',').map(x => Number(x.trim())).filter(n => !isNaN(n)),
+        gpio: {
+          enabled: document.getElementById('gpioEnabled').checked,
+          relayPin: Number(document.getElementById('relayPin').value || 17),
+          relayActiveHigh: document.getElementById('relayActiveHigh').value === 'true',
+          blinkHz: Number(document.getElementById('blinkHz').value || 2),
+          blinkDurationMs: Number(document.getElementById('blinkDurationMs').value || 10000),
+        }
+      };
+      const status = document.getElementById('saveStatus');
+      status.textContent = 'Saving...';
+      status.className = 'status running';
+      try {
+        const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (data.ok) {
+          status.textContent = 'Saved';
+          status.className = 'status done';
+          setTimeout(() => { status.textContent = 'Idle'; status.className = 'status idle'; }, 1500);
+        } else {
+          throw new Error('Save failed');
+        }
+      } catch (e) {
+        status.textContent = 'Error saving';
+        status.className = 'status warning';
+      }
+    });
+
+    loadSettings();
+  </script>
+</body>
+</html>
