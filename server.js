@@ -52,7 +52,7 @@ function startTicker() {
       stopTicker();
       io.emit('done');
     }
-  }, 200); // 5 FPS updates
+  }, 1000); // 1 FPS updates; client animates locally
 }
 
 // API endpoints
