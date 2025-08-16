@@ -1,5 +1,7 @@
 # tournament-countdown
 
+[![CodeQL](https://github.com/xaxy55/tournament-countdown/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/xaxy55/tournament-countdown/actions/workflows/github-code-scanning/codeql)
+
 A tiny real-time countdown web app. Everyone sees the same timer. You can start/reset via UI or HTTP API.
 
 ## Features
