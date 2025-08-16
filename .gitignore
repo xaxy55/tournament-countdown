@@ -138,7 +138,3 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .mailmap
-
-# Sound files
-*.mp3
-*.ogg
