@@ -2,6 +2,7 @@ import express from 'express';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
+import { createRequire } from 'module';
 
 const app = express();
 const server = http.createServer(app);
@@ -22,6 +23,107 @@ let countdown = {
   running: false
 };
 let intervalHandle = null;
+
+// GPIO/Relay blinking controller (Raspberry Pi)
+class RelayController {
+  constructor(options = {}) {
+    this.enabled = !!options.enabled;
+    this.pinNumber = options.pinNumber ?? 17; // BCM numbering
+    this.activeHigh = options.activeHigh ?? true; // active-low relays set false
+    this.hz = Number(options.hz ?? 2); // blink frequency when done
+    this.defaultDurationMs = Number(options.defaultDurationMs ?? 10000); // ms to blink after done
+    this.Gpio = null;
+    this.pin = null;
+    this.currentOn = false;
+    this.blinkInterval = null;
+    this.stopTimeout = null;
+  }
+
+  tryLoadOnOff() {
+    if (!this.enabled) return false;
+    try {
+      const require = createRequire(import.meta.url);
+      const mod = require('onoff');
+      this.Gpio = mod.Gpio || (mod.default && mod.default.Gpio) || null;
+      if (!this.Gpio) throw new Error('onoff.Gpio not found');
+      return true;
+    } catch (e) {
+      console.warn('[GPIO] Enabled but failed to load onoff:', e?.message || e);
+      this.enabled = false;
+      return false;
+    }
+  }
+
+  init() {
+    if (!this.enabled) return;
+    if (!this.tryLoadOnOff()) return;
+    try {
+      this.pin = new this.Gpio(this.pinNumber, 'out');
+      this.setRelay(false);
+      // best-effort cleanup
+      const cleanup = () => {
+        try { this.dispose(); } catch {}
+      };
+      process.once('SIGINT', cleanup);
+      process.once('SIGTERM', cleanup);
+      process.once('exit', cleanup);
+      console.log(`[GPIO] Relay ready on BCM pin ${this.pinNumber} (activeHigh=${this.activeHigh})`);
+    } catch (e) {
+      console.warn('[GPIO] Failed to init relay pin:', e?.message || e);
+      this.enabled = false;
+    }
+  }
+
+  setRelay(on) {
+    this.currentOn = !!on;
+    if (!this.enabled || !this.pin) return;
+    const level = this.activeHigh ? (on ? 1 : 0) : (on ? 0 : 1);
+    try {
+      this.pin.writeSync(level);
+    } catch (e) {
+      console.warn('[GPIO] writeSync failed:', e?.message || e);
+    }
+  }
+
+  startBlinking(durationMs) {
+    if (!this.enabled || !this.pin) return;
+    const dur = Number.isFinite(durationMs) ? Math.max(0, Math.floor(durationMs)) : this.defaultDurationMs;
+    this.stopBlinking();
+    const periodMs = Math.max(40, Math.floor(1000 / Math.max(0.1, this.hz))); // clamp sane values
+    const half = Math.floor(periodMs / 2);
+    // start from ON state
+    this.setRelay(true);
+    this.blinkInterval = setInterval(() => {
+      this.setRelay(!this.currentOn);
+    }, half);
+    this.stopTimeout = setTimeout(() => this.stopBlinking(), dur);
+  }
+
+  stopBlinking() {
+    if (this.blinkInterval) { clearInterval(this.blinkInterval); this.blinkInterval = null; }
+    if (this.stopTimeout) { clearTimeout(this.stopTimeout); this.stopTimeout = null; }
+    this.setRelay(false);
+  }
+
+  dispose() {
+    try { this.stopBlinking(); } catch {}
+    if (this.pin) {
+      try { this.pin.unexport(); } catch {}
+      this.pin = null;
+    }
+  }
+}
+
+// Configure relay from environment
+const gpioEnabled = /^1|true$/i.test(String(process.env.GPIO_ENABLED || ''));
+const relay = new RelayController({
+  enabled: gpioEnabled,
+  pinNumber: Number(process.env.RELAY_PIN ?? 17), // BCM numbering
+  activeHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')),
+  hz: Number(process.env.BLINK_HZ ?? 2),
+  defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
+});
+relay.init();
 
 function getState() {
   const now = Date.now();
@@ -51,6 +153,8 @@ function startTicker() {
       countdown.running = false;
       stopTicker();
       io.emit('done');
+  // Trigger physical blinking on Raspberry Pi when done
+  try { relay.startBlinking(); } catch {}
     }
   }, 1000); // 1 FPS updates; client animates locally
 }
@@ -62,6 +166,7 @@ app.post('/api/start', (req, res) => {
   countdown.durationMs = d;
   countdown.endTime = Date.now() + d;
   countdown.running = d > 0;
+  try { relay.stopBlinking(); } catch {}
   const state = getState();
   io.emit('start', state);
   startTicker();
@@ -72,6 +177,7 @@ app.post('/api/reset', (_req, res) => {
   countdown.endTime = null;
   countdown.running = false;
   stopTicker();
+  try { relay.stopBlinking(); } catch {}
   const state = getState();
   io.emit('reset', state);
   res.json({ ok: true, state });
@@ -91,6 +197,7 @@ io.on('connection', (socket) => {
     countdown.durationMs = d;
     countdown.endTime = Date.now() + d;
     countdown.running = d > 0;
+  try { relay.stopBlinking(); } catch {}
     const state = getState();
     io.emit('start', state);
     startTicker();
@@ -100,6 +207,7 @@ io.on('connection', (socket) => {
     countdown.endTime = null;
     countdown.running = false;
     stopTicker();
+  try { relay.stopBlinking(); } catch {}
     const state = getState();
     io.emit('reset', state);
   });
