@@ -9,6 +9,30 @@
     { "url": "/", "description": "Current server" }
   ],
   "paths": {
+    "/api/sounds": {
+      "get": {
+        "summary": "List available sounds",
+        "responses": {
+          "200": {
+            "description": "List of audio files under /public/sounds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/SoundItem" }
+                    }
+                  },
+                  "required": ["items"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/settings": {
       "get": {
         "summary": "Get app settings",
@@ -135,6 +159,14 @@
   },
   "components": {
     "schemas": {
+      "SoundItem": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "url": { "type": "string" }
+        },
+        "required": ["name", "url"]
+      },
       "Settings": {
         "type": "object",
         "properties": {

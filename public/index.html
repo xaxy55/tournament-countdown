@@ -17,13 +17,9 @@
     <div class="controls">
       <label>
         Duration (seconds):
-  <input id="duration" type="number" min="0" step="1" value="45" />
+        <input id="duration" type="number" min="0" step="1" />
       </label>
-      <div class="presets" aria-label="Presets">
-        <button class="preset tertiary" data-preset="30" title="Set 30 seconds">30s</button>
-        <button class="preset tertiary" data-preset="45" title="Set 45 seconds">45s</button>
-        <button class="preset tertiary" data-preset="60" title="Set 60 seconds">60s</button>
-      </div>
+      <div class="presets" aria-label="Presets" id="presetsRow"></div>
       <button id="startBtn">Start</button>
       <button id="resetBtn" class="secondary">Reset</button>
   <button id="fsBtn" class="tertiary" title="Toggle Fullscreen">Fullscreen</button>
@@ -41,5 +37,29 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/theme.js"></script>
   <script src="/client.js"></script>
+  <script>
+    // Load persisted defaults and presets
+    (async function(){
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        const s = data.settings || {};
+        const def = Math.max(0, Math.floor(s.defaultDurationSeconds ?? 45));
+        const presets = Array.isArray(s.presets) && s.presets.length ? s.presets : [30,45,60];
+        document.getElementById('duration').value = String(def);
+        const row = document.getElementById('presetsRow');
+        row.innerHTML = '';
+        presets.forEach(p => {
+          const btn = document.createElement('button');
+          btn.className = 'preset tertiary';
+          btn.dataset.preset = String(p);
+          btn.title = `Set ${p} seconds`;
+          btn.textContent = `${p}s`;
+          btn.addEventListener('click', () => { document.getElementById('duration').value = String(p); });
+          row.appendChild(btn);
+        });
+      } catch {}
+    })();
+  </script>
 </body>
 </html>

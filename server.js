@@ -144,6 +144,21 @@ const relay = new RelayController({
 });
 relay.init();
 
+// Settings persistence
+const settingsDir = path.join(__dirname, 'data');
+const settingsPath = path.join(settingsDir, 'settings.json');
+function ensureSettingsDir() {
+  try { fs.mkdirSync(settingsDir, { recursive: true }); } catch {}
+}
+function saveSettingsToDisk() {
+  try {
+    ensureSettingsDir();
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+  } catch (e) {
+    console.warn('[Settings] Failed to save settings:', e?.message || e);
+  }
+}
+
 // App settings (in-memory)
 const parsePresetsEnv = (val) => {
   if (!val) return [30, 45, 60];
@@ -173,6 +188,20 @@ const settings = {
     volume: 1
   }
 };
+
+// Load persisted settings if present
+try {
+  const raw = fs.readFileSync(path.join(__dirname, 'data', 'settings.json'), 'utf-8');
+  const persisted = JSON.parse(raw);
+  if (persisted && typeof persisted === 'object') {
+    if (Number.isFinite(persisted.defaultDurationSeconds)) settings.defaultDurationSeconds = Math.max(0, Math.floor(persisted.defaultDurationSeconds));
+    if (Array.isArray(persisted.presets)) settings.presets = persisted.presets.filter(n => Number.isFinite(n) && n >= 0).map(n => Math.floor(n));
+    if (persisted.gpio && typeof persisted.gpio === 'object') settings.gpio = { ...settings.gpio, ...persisted.gpio };
+    if (persisted.theme && typeof persisted.theme === 'object') settings.theme = { ...settings.theme, ...persisted.theme };
+    if (persisted.sound && typeof persisted.sound === 'object') settings.sound = { ...settings.sound, ...persisted.sound };
+  }
+  console.log('[Settings] Loaded persisted settings');
+} catch {}
 
 function getState() {
   const now = Date.now();
@@ -209,6 +238,21 @@ function startTicker() {
 }
 
 // API endpoints
+app.get('/api/sounds', (_req, res) => {
+  try {
+    const soundsDir = path.join(__dirname, 'public', 'sounds');
+    if (!fs.existsSync(soundsDir)) return res.json({ items: [] });
+    const files = fs.readdirSync(soundsDir, { withFileTypes: true })
+      .filter(d => d.isFile())
+      .map(d => d.name)
+      .filter(name => /\.(mp3|ogg|wav|m4a)$/i.test(name))
+      .map(name => ({ name, url: `/sounds/${name}` }));
+    res.json({ items: files });
+  } catch (e) {
+    res.status(500).json({ items: [], error: 'Failed to list sounds' });
+  }
+});
+
 app.get('/api/settings', (_req, res) => {
   res.json({ settings });
 });
@@ -274,6 +318,8 @@ app.post('/api/settings', (req, res) => {
       console.warn('[GPIO] Applying settings failed:', e?.message || e);
     }
 
+  // Persist to disk
+  saveSettingsToDisk();
   res.json({ ok: true, settings });
   } catch (e) {
     res.status(400).json({ ok: false, error: 'Invalid settings' });
