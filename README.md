@@ -21,3 +21,7 @@ A tiny real-time countdown web app. Everyone sees the same timer. You can start/
 ## Notes
 - This uses in-memory state; restarting the server clears the countdown.
 - To expose publicly, put behind a reverse proxy or deploy to a host.
+
+## Security
+
+Please see the Security Policy for how to report vulnerabilities and our coordinated disclosure process: SECURITY.md
