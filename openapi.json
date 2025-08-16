@@ -162,9 +162,18 @@
               }
             },
             "required": ["enabled", "colors"]
+          },
+          "sound": {
+            "type": "object",
+            "properties": {
+              "enabled": { "type": "boolean" },
+              "endUrl": { "type": "string", "description": "Audio URL to play when countdown completes" },
+              "volume": { "type": "number", "minimum": 0, "maximum": 1 }
+            },
+            "required": ["enabled", "endUrl", "volume"]
           }
         },
-        "required": ["defaultDurationSeconds", "presets", "gpio", "theme"]
+        "required": ["defaultDurationSeconds", "presets", "gpio", "theme", "sound"]
       },
       "State": {
         "type": "object",

@@ -60,6 +60,17 @@
         </label>
       </fieldset>
 
+      <fieldset>
+        <legend>Sound</legend>
+        <label class="inline"><input type="checkbox" id="soundEnabled"> Enable end sound</label>
+        <label>Volume (0..1)
+          <input type="number" id="soundVolume" min="0" max="1" step="0.05" value="1">
+        </label>
+        <label>Audio URL (optional)
+          <input type="text" id="soundEndUrl" placeholder="/sounds/end.mp3 or https://...">
+        </label>
+      </fieldset>
+
   <div class="settings-actions">
         <button type="submit">Save</button>
         <a class="secondary" href="/">Back</a>
@@ -91,6 +102,11 @@
   if (c.primaryStart) document.getElementById('themePrimaryStart').value = c.primaryStart;
   if (c.primaryEnd) document.getElementById('themePrimaryEnd').value = c.primaryEnd;
   try { window.__applyTheme(t); } catch {}
+  // sound
+  const snd = s.sound || {};
+  document.getElementById('soundEnabled').checked = snd.enabled ?? true;
+  document.getElementById('soundVolume').value = snd.volume ?? 1;
+  document.getElementById('soundEndUrl').value = snd.endUrl ?? '';
     }
 
     document.getElementById('settingsForm').addEventListener('submit', async (e) => {
@@ -114,6 +130,11 @@
             primaryStart: document.getElementById('themePrimaryStart').value,
             primaryEnd: document.getElementById('themePrimaryEnd').value
           }
+        },
+        sound: {
+          enabled: document.getElementById('soundEnabled').checked,
+          volume: Number(document.getElementById('soundVolume').value || 1),
+          endUrl: String(document.getElementById('soundEndUrl').value || '')
         }
       };
       const status = document.getElementById('saveStatus');

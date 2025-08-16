@@ -166,6 +166,11 @@ const settings = {
   theme: {
     enabled: false,
     colors: {}
+  },
+  sound: {
+    enabled: true,
+    endUrl: '',
+    volume: 1
   }
 };
 
@@ -238,6 +243,11 @@ app.post('/api/settings', (req, res) => {
       theme: {
         enabled: !!body.theme?.enabled,
         colors: typeof body.theme?.colors === 'object' && body.theme?.colors !== null ? body.theme.colors : settings.theme.colors
+      },
+      sound: {
+        enabled: body.sound?.enabled ?? settings.sound.enabled,
+        endUrl: typeof body.sound?.endUrl === 'string' ? body.sound.endUrl : settings.sound.endUrl,
+        volume: Number.isFinite(body.sound?.volume) ? Math.max(0, Math.min(1, Number(body.sound.volume))) : settings.sound.volume
       }
     };
 
@@ -246,6 +256,7 @@ app.post('/api/settings', (req, res) => {
     settings.presets = next.presets;
   settings.gpio = next.gpio;
   settings.theme = next.theme;
+  settings.sound = next.sound;
 
     // Apply changes to relay controller at runtime
     try {

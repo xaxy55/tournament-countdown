@@ -14,6 +14,9 @@ let rafId = null;
 let localEndTime = null; // ms timestamp when current countdown should end
 let baseTitle = document.title || 'Shared Countdown';
 let audioCtx = null;
+let endAudio = null;
+let endAudioVolume = 1;
+let endAudioEnabled = true;
 function ensureAudio() {
   if (!audioCtx) {
     try {
@@ -75,6 +78,26 @@ function triggerFlash() {
     flashEl.classList.remove('show');
     flashTimeoutId = null;
   }, 10000);
+}
+
+async function loadSoundSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    const data = await res.json();
+    const snd = data.settings?.sound || {};
+    endAudioEnabled = snd.enabled ?? true;
+    endAudioVolume = Number.isFinite(snd.volume) ? Math.max(0, Math.min(1, snd.volume)) : 1;
+    const url = snd.endUrl && String(snd.endUrl).trim();
+    if (url) {
+      try {
+        endAudio = new Audio(url);
+        endAudio.preload = 'auto';
+        endAudio.volume = endAudioVolume;
+      } catch {}
+    } else {
+      endAudio = null;
+    }
+  } catch {}
 }
 
 function formatMs(ms) {
@@ -142,15 +165,25 @@ function setState(state) {
   // Only start flashing when transitioning into Done; stop otherwise
   if (isDone && !lastWasDone) {
     triggerFlash();
-    beep();
+    if (endAudioEnabled && endAudio) {
+      try {
+        endAudio.currentTime = 0;
+        endAudio.volume = endAudioVolume;
+        endAudio.play().catch(() => beep());
+      } catch { beep(); }
+    } else {
+      beep();
+    }
     if (navigator?.vibrate) {
       try { navigator.vibrate([150, 50, 150]); } catch {}
     }
   } else if (!isDone && lastWasDone) {
     stopFlash();
+    try { endAudio?.pause?.(); } catch {}
   } else if (state.running) {
     // Safety: ensure no flashing while running
     stopFlash();
+    try { endAudio?.pause?.(); } catch {}
   }
   lastWasDone = isDone;
 
@@ -256,10 +289,17 @@ socket.on('start', (state) => setState(state));
 socket.on('tick', (state) => setState(state));
 socket.on('reset', (state) => {
   stopFlash();
+  try { endAudio?.pause?.(); } catch {}
   setState(state);
 });
 socket.on('done', () => {
   statusEl.textContent = 'Done';
   statusEl.className = 'status done';
   triggerFlash();
+  if (endAudioEnabled && endAudio) {
+    try { endAudio.currentTime = 0; endAudio.volume = endAudioVolume; endAudio.play().catch(() => {}); } catch {}
+  }
 });
+
+// Load sound preferences at startup
+loadSoundSettings();
