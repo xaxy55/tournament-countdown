@@ -1,0 +1,100 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Tournament Countdown API",
+    "version": "1.0.0",
+    "description": "Simple countdown API with real-time updates."
+  },
+  "servers": [
+    { "url": "/", "description": "Current server" }
+  ],
+  "paths": {
+    "/api/state": {
+      "get": {
+        "summary": "Get current countdown state",
+        "responses": {
+          "200": {
+            "description": "State",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/State" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/start": {
+      "post": {
+        "summary": "Start countdown",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "durationMs": { "type": "integer", "minimum": 0, "description": "Duration in milliseconds" }
+                }
+              },
+              "example": { "durationMs": 45000 }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "state": { "$ref": "#/components/schemas/State" }
+                  },
+                  "required": ["ok", "state"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reset": {
+      "post": {
+        "summary": "Reset countdown",
+        "responses": {
+          "200": {
+            "description": "Reset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "state": { "$ref": "#/components/schemas/State" }
+                  },
+                  "required": ["ok", "state"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "State": {
+        "type": "object",
+        "properties": {
+          "durationMs": { "type": "integer", "minimum": 0 },
+          "endTime": { "type": "integer", "nullable": true, "description": "UTC ms timestamp when countdown ends" },
+          "remainingMs": { "type": "integer", "minimum": 0 },
+          "running": { "type": "boolean" }
+        },
+        "required": ["durationMs", "remainingMs", "running"]
+      }
+    }
+  }
+}

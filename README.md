@@ -21,6 +21,11 @@ A tiny real-time countdown web app. Everyone sees the same timer. You can start/
 - `POST /api/reset`
 - `GET /api/state`
 
+OpenAPI/Swagger:
+
+- OpenAPI JSON: `/openapi.json`
+- Swagger UI: `/api-docs`
+
 ## Notes
 - This uses in-memory state; restarting the server clears the countdown.
 - To expose publicly, put behind a reverse proxy or deploy to a host.
