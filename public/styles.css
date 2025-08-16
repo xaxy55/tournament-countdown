@@ -43,7 +43,7 @@ body.is-fullscreen.can-start { cursor: pointer; }
 }
 
 .flash-overlay.show {
-	animation: flash-red 1100ms ease-in-out 1;
+	animation: flash-red 1s ease-in-out infinite;
 }
 
 @keyframes flash-red {

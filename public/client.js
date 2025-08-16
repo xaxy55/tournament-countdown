@@ -22,6 +22,10 @@ function triggerFlash() {
   // Force reflow to reset animation state
   void flashEl.offsetWidth;
   flashEl.classList.add('show');
+  // Stop flashing after 10 seconds
+  setTimeout(() => {
+    flashEl.classList.remove('show');
+  }, 10000);
 }
 
 function formatMs(ms) {

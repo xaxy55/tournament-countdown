@@ -17,7 +17,7 @@ app.use(express.static('public'));
 
 // Shared countdown state
 let countdown = {
-  durationMs: 30000, // default 30s
+  durationMs: 45000, // default 45s
   endTime: null, // timestamp in ms when countdown ends, or null
   running: false
 };
