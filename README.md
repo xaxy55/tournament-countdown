@@ -133,6 +133,57 @@ Troubleshooting tips:
 - Ensure you’re using the correct BCM pin numbering and wiring. For bare relays, use a transistor driver + flyback diode, not direct GPIO.
 - Change `PORT` if 3000 is in use.
 
+## Illustrations
+
+### Architecture overview
+
+```mermaid
+%%{init: {"flowchart": {"defaultRenderer": "elk"}} }%%
+flowchart LR
+	subgraph Network
+		UserA[Browser A]
+		UserB[Browser B]
+	end
+	subgraph RaspberryPi
+		Server[Node.js Express + Socket.IO]
+		GPIO[Relay Controller]
+	end
+	subgraph Clients
+		UI[Web UI]
+	end
+
+	UserA -- start/reset via HTTP --> Server
+	UserB -- start/reset via HTTP --> Server
+	UI <--> Server
+	Server -- emits ticks/done --> UI
+	Server -- on Done: blink --> GPIO
+	GPIO -- relay/LED --> RaspberryPi
+```
+
+### Sequence of events
+
+```mermaid
+sequenceDiagram
+	actor BrowserA as Browser A
+	actor BrowserB as Browser B
+	participant Server as Node.js Server
+	participant GPIO as Relay Controller
+
+	BrowserA->>Server: POST /api/start
+	Server-->>BrowserA: 200 {state}
+	Server-->>BrowserB: socket 'start'
+	loop Every second
+		Server-->>BrowserA: socket 'tick'
+		Server-->>BrowserB: socket 'tick'
+	end
+	note over Server: When remainingMs hits 0
+	Server-->>BrowserA: socket 'done'
+	Server-->>BrowserB: socket 'done'
+	Server->>GPIO: startBlinking()
+	BrowserB->>Server: POST /api/reset
+	Server->>GPIO: stopBlinking()
+```
+
 ## Security
 
 Please see the Security Policy for how to report vulnerabilities and our coordinated disclosure process: SECURITY.md
