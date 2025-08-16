@@ -188,7 +188,3 @@ sequenceDiagram
 	BrowserB->>Server: POST /api/reset
 	Server->>GPIO: stopBlinking()
 ```
-
-## Security
-
-Please see the Security Policy for how to report vulnerabilities and our coordinated disclosure process: SECURITY.md
