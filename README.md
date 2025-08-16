@@ -2,6 +2,13 @@
 
 [![CodeQL](https://github.com/xaxy55/tournament-countdown/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/xaxy55/tournament-countdown/actions/workflows/github-code-scanning/codeql)
 
+<p align="center">
+	<a href="https://buymeacoffee.com/xaxy55" target="_blank" rel="noopener">
+		<img alt="Buy me a pizza" src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20pizza&emoji=%F0%9F%8D%95&slug=xaxy55&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" />
+	</a>
+</p>
+
+
 A tiny real-time countdown web app. Everyone sees the same timer. You can start/reset via UI or HTTP API.
 
 ## Features
@@ -9,6 +16,8 @@ A tiny real-time countdown web app. Everyone sees the same timer. You can start/
 - Start/reset via UI or REST API
 - Real-time sync to all clients (Socket.IO)
 - Optional Raspberry Pi GPIO relay blinking when time is up
+ - Optional end-of-timer sound (custom URL or from /sounds, with volume)
+ - Theme customization and settings persisted to disk
 
 ## Screenshots
 
@@ -49,6 +58,9 @@ Theme examples
 - `POST /api/start` body: `{ "durationMs": number }`
 - `POST /api/reset`
 - `GET /api/state`
+ - `GET /api/settings` — fetch current settings (defaults, presets, gpio, theme, sound)
+ - `POST /api/settings` — update settings; persists to `data/settings.json`
+ - `GET /api/sounds` — list available audio files under `public/sounds`
 
 OpenAPI/Swagger:
 
@@ -178,20 +190,29 @@ flowchart LR
 		UserA[Browser A]
 		UserB[Browser B]
 	end
-	subgraph RaspberryPi
-		Server[Node.js Express + Socket.IO]
+	subgraph Server["Node.js (Express + Socket.IO)"]
+		API[REST API]
+		Settings[(data/settings.json)]
+		Sounds[[public/sounds]]
 		GPIO[Relay Controller]
+		Swagger[/Swagger UI\n/api-docs/]
 	end
 	subgraph Clients
 		UI[Web UI]
+		Audio[Audio Player]
 	end
 
-	UserA -- start/reset via HTTP --> Server
-	UserB -- start/reset via HTTP --> Server
-	UI <--> Server
-	Server -- emits ticks/done --> UI
-	Server -- on Done: blink --> GPIO
-	GPIO -- relay/LED --> RaspberryPi
+	UserA --> API
+	UserB --> API
+	UserA --> Swagger
+	UI <--> API
+	API --> Settings
+	UI -- GET/POST /api/settings --> API
+	UI -- GET /api/sounds --> API
+	API --> Sounds
+	API -. "socket: ticks/done" .-> UI
+	UI -- on 'done': play --> Audio
+	API -- on Done: blink --> GPIO
 ```
 
 ### Sequence of events
@@ -201,7 +222,16 @@ sequenceDiagram
 	actor BrowserA as Browser A
 	actor BrowserB as Browser B
 	participant Server as Node.js Server
+	participant Settings as Settings Store
 	participant GPIO as Relay Controller
+	participant Audio as Audio Player
+
+	BrowserA->>Server: GET /api/settings
+	Server-->>BrowserA: 200 {settings}
+	opt Optional: preload sounds
+		BrowserA->>Server: GET /api/sounds
+		Server-->>BrowserA: 200 [files]
+	end
 
 	BrowserA->>Server: POST /api/start
 	Server-->>BrowserA: 200 {state}
@@ -213,7 +243,14 @@ sequenceDiagram
 	note over Server: When remainingMs hits 0
 	Server-->>BrowserA: socket 'done'
 	Server-->>BrowserB: socket 'done'
+	BrowserA->>Audio: play end sound (URL + volume)
 	Server->>GPIO: startBlinking()
+
+	BrowserA->>Server: POST /api/settings
+	Server-->>BrowserA: 200 {settings}
+	Server->>Settings: persist to data/settings.json
+
 	BrowserB->>Server: POST /api/reset
+	BrowserB->>Audio: stop sound
 	Server->>GPIO: stopBlinking()
 ```
