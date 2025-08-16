@@ -69,6 +69,11 @@
         <label>Audio URL (optional)
           <input type="text" id="soundEndUrl" placeholder="/sounds/end.mp3 or https://...">
         </label>
+        <div class="settings-actions" style="justify-content:flex-start; gap:8px;">
+          <button type="button" id="testSound" class="tertiary">Test</button>
+          <button type="button" id="stopSound" class="secondary">Stop</button>
+          <button type="button" id="useBeep" class="tertiary">Use default beep</button>
+        </div>
       </fieldset>
 
   <div class="settings-actions">
@@ -158,6 +163,40 @@
     });
 
     loadSettings();
+  </script>
+  <script>
+    // Local test controls (don’t persist)
+    let __testAudio = null;
+    document.getElementById('testSound').addEventListener('click', async () => {
+      const enabled = document.getElementById('soundEnabled').checked;
+      const vol = Number(document.getElementById('soundVolume').value || 1);
+      const url = String(document.getElementById('soundEndUrl').value || '').trim();
+      try { __testAudio?.pause?.(); } catch {}
+      __testAudio = null;
+      if (!enabled) return;
+      if (url) {
+        try { __testAudio = new Audio(url); __testAudio.volume = Math.max(0, Math.min(1, vol)); await __testAudio.play(); } catch (e) { console.warn('Test audio failed', e); }
+      } else {
+        // fallback to beep via WebAudio
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const dur = 0.35; const now = ctx.currentTime;
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now);
+          osc.frequency.exponentialRampToValueAtTime(440, now + dur * 0.6);
+          osc.frequency.exponentialRampToValueAtTime(660, now + dur);
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.exponentialRampToValueAtTime(Math.max(0.05, Math.min(1, vol)), now + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(now); osc.stop(now + dur + 0.02);
+        } catch {}
+      }
+    });
+    document.getElementById('stopSound').addEventListener('click', () => { try { __testAudio?.pause?.(); } catch {} });
+    document.getElementById('useBeep').addEventListener('click', () => { document.getElementById('soundEndUrl').value = ''; });
   </script>
 </body>
 </html>
