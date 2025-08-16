@@ -24,6 +24,21 @@
  - Optional end-of-timer sound (custom URL or from /sounds, with volume)
  - Theme customization and settings persisted to disk
 
+## Table of contents
+
+- [tournament-countdown](#tournament-countdown)
+	- [Features](#features)
+	- [Table of contents](#table-of-contents)
+	- [Screenshots](#screenshots)
+	- [Run locally](#run-locally)
+		- [API](#api)
+	- [Notes](#notes)
+	- [Raspberry Pi relay output (optional)](#raspberry-pi-relay-output-optional)
+		- [Full setup on Raspberry Pi](#full-setup-on-raspberry-pi)
+	- [Illustrations](#illustrations)
+		- [Architecture overview](#architecture-overview)
+		- [Sequence of events](#sequence-of-events)
+
 ## Screenshots
 
 Home
@@ -59,6 +74,15 @@ Theme examples
 2. Start the server
 3. Open http://localhost:3000
 
+Quick start (macOS/Linux):
+
+```bash
+npm install
+npm run dev
+# open the app
+open http://localhost:3000
+```
+
 ### API
 - `POST /api/start` body: `{ "durationMs": number }`
 - `POST /api/reset`
@@ -66,6 +90,29 @@ Theme examples
  - `GET /api/settings` — fetch current settings (defaults, presets, gpio, theme, sound)
  - `POST /api/settings` — update settings; persists to `data/settings.json`
  - `GET /api/sounds` — list available audio files under `public/sounds`
+
+Examples:
+
+```bash
+# Start a 45 second timer
+curl -sS -X POST http://localhost:3000/api/start \
+	-H 'Content-Type: application/json' \
+	-d '{"durationMs":45000}' | jq .
+
+# Reset
+curl -sS -X POST http://localhost:3000/api/reset | jq .
+
+# State
+curl -sS http://localhost:3000/api/state | jq .
+
+# Settings (read)
+curl -sS http://localhost:3000/api/settings | jq .
+
+# Settings (update)
+curl -sS -X POST http://localhost:3000/api/settings \
+	-H 'Content-Type: application/json' \
+	-d '{"defaultDurationSeconds":30,"sound":{"enabled":true,"endUrl":"/sounds/beep.mp3","volume":0.6}}' | jq .
+```
 
 OpenAPI/Swagger:
 
@@ -108,6 +155,9 @@ Notes:
 - On shutdown or reset, the output is set LOW (relay off)
 
 ### Full setup on Raspberry Pi
+
+<details>
+<summary>Show Raspberry Pi setup instructions</summary>
 
 1) Update OS and install Node.js and Git
 
@@ -183,6 +233,8 @@ Troubleshooting tips:
 - If GPIO access errors occur, try running as `root` or ensure your user has permission to access GPIO. Some relay boards are active-LOW; set `RELAY_ACTIVE_HIGH=0`.
 - Ensure you’re using the correct BCM pin numbering and wiring. For bare relays, use a transistor driver + flyback diode, not direct GPIO.
 - Change `PORT` if 3000 is in use.
+
+</details>
 
 ## Illustrations
 
