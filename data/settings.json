@@ -24,7 +24,7 @@
   },
   "sound": {
     "enabled": true,
-    "endUrl": "",
+    "endUrl": "/sounds/end.mp3",
     "volume": 1
   }
 }
