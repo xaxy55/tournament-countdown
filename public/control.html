@@ -385,7 +385,7 @@
 
     // Format time display
     function formatTime(ms) {
-      const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+      const totalSeconds = Math.floor(ms / 1000);
       const minutes = Math.floor(totalSeconds / 60);
       const seconds = totalSeconds % 60;
       const tenths = Math.floor((ms % 1000) / 100);
@@ -544,6 +544,7 @@
     });
 
     // Initialize
+    updateDebugInfo();
     loadSettings();
     
     // Request current state
@@ -561,6 +562,7 @@
         const rect = btn.getBoundingClientRect();
         console.log('Button position:', btn.textContent, rect.top, rect.bottom, 'viewport height:', window.innerHeight);
       });
+      updateDebugInfo();
     }, 1000);
   </script>
 </body>
