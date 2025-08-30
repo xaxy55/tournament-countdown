@@ -1,0 +1,19 @@
+{
+  "name": "tournament-countdown-controller",
+  "version": "1.0.0",
+  "description": "ESP32 controller for tournament countdown timer",
+  "keywords": ["esp32", "tournament", "countdown", "timer", "arduino"],
+  "authors": [
+    {
+      "name": "Tournament Countdown Team",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "ArduinoJson": "^6.21.0",
+    "WebSockets": "^2.4.0"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"]
+}
