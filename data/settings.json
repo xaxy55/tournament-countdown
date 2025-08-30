@@ -1,9 +1,9 @@
 {
-  "defaultDurationSeconds": 45,
+  "defaultDurationSeconds": 33,
   "presets": [
-    30,
-    45,
-    60
+    10,
+    20,
+    30
   ],
   "gpio": {
     "enabled": false,
