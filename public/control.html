@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Counter Control</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --text: #e5e7eb;
+      --surface: #0f172a;
+      --border: #334155;
+      --border-strong: #374151;
+      --primary-start: #2563eb;
+      --primary-end: #1d4ed8;
+      --secondary-start: #64748b;
+      --secondary-end: #475569;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --status-idle: #94a3b8;
+      --status-running: #34d399;
+      --status-done: #f87171;
+    }
+
+    * { 
+      box-sizing: border-box; 
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body { 
+      height: 100%; 
+      margin: 0; 
+      padding: 0;
+      font-family: system-ui, -apple-system, sans-serif; 
+      color: var(--text); 
+      background: var(--bg);
+      overflow: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .container {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 16px;
+      gap: 16px;
+    }
+
+    .header {
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .status-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      min-height: 200px;
+    }
+
+    .time-display {
+      font-size: clamp(48px, 15vw, 80px);
+      font-weight: 800;
+      letter-spacing: 2px;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 12px;
+      color: #f8fafc;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+
+    .time-display.warning {
+      color: var(--warning);
+      text-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
+    }
+
+    .status-text {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .status-text.idle { color: var(--status-idle); }
+    .status-text.running { color: var(--status-running); }
+    .status-text.done { color: var(--status-done); }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    .duration-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .duration-input {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 18px;
+      text-align: center;
+      width: 100%;
+    }
+
+    .duration-input:focus {
+      outline: 2px solid var(--primary-start);
+      outline-offset: 2px;
+    }
+
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .preset-btn {
+      padding: 12px 8px;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      background: linear-gradient(180deg, var(--surface), var(--bg));
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .preset-btn:active {
+      transform: scale(0.95);
+      background: var(--primary-start);
+    }
+
+    .action-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 150ms ease;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn-start {
+      background: linear-gradient(180deg, var(--success), #059669);
+      color: white;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-reset {
+      background: linear-gradient(180deg, var(--danger), #dc2626);
+      color: white;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Vibration feedback for mobile */
+    .btn:active:not(:disabled) {
+      animation: vibrate 150ms ease-in-out;
+    }
+
+    @keyframes vibrate {
+      0%, 100% { transform: scale(0.95); }
+      50% { transform: scale(0.92); }
+    }
+
+    /* Connection status indicator */
+    .connection-status {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--success);
+      transition: background-color 200ms ease;
+    }
+
+    .connection-status.disconnected {
+      background: var(--danger);
+    }
+
+    /* Toast notifications */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 20px;
+      color: var(--text);
+      font-weight: 600;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 300ms ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="connection-status" id="connectionStatus"></div>
+  
+  <div class="container">
+    <div class="header">
+      <h1>Counter Control</h1>
+    </div>
+
+    <div class="status-display">
+      <div id="timeDisplay" class="time-display">00:45.0</div>
+      <div id="statusText" class="status-text idle">Ready</div>
+    </div>
+
+    <div class="controls">
+      <div class="duration-row">
+        <input id="durationInput" type="number" class="duration-input" min="1" step="1" value="45" placeholder="Seconds">
+      </div>
+      
+      <div class="presets" id="presetsContainer">
+        <!-- Preset buttons will be populated by JavaScript -->
+      </div>
+
+      <div class="action-buttons">
+        <button id="startBtn" class="btn btn-start">Start</button>
+        <button id="resetBtn" class="btn btn-reset">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // DOM elements
+    const timeDisplay = document.getElementById('timeDisplay');
+    const statusText = document.getElementById('statusText');
+    const durationInput = document.getElementById('durationInput');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const presetsContainer = document.getElementById('presetsContainer');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const toast = document.getElementById('toast');
+
+    // Socket connection
+    const socket = io();
+    let currentState = { running: false, remainingMs: 0, durationMs: 45000 };
+    let animationId = null;
+
+    // Vibration feedback (mobile)
+    function vibrate(pattern = [10]) {
+      if (navigator.vibrate) {
+        navigator.vibrate(pattern);
+      }
+    }
+
+    // Toast notifications
+    function showToast(message, duration = 2000) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, duration);
+    }
+
+    // Format time display
+    function formatTime(ms) {
+      const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      const tenths = Math.floor((ms % 1000) / 100);
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${tenths}`;
+    }
+
+    // Update display
+    function updateDisplay() {
+      if (currentState.running && currentState.endTime) {
+        const now = Date.now();
+        const remaining = Math.max(0, currentState.endTime - now);
+        
+        timeDisplay.textContent = formatTime(remaining);
+        
+        // Warning state for last 10 seconds
+        if (remaining <= 10000 && remaining > 0) {
+          timeDisplay.classList.add('warning');
+        } else {
+          timeDisplay.classList.remove('warning');
+        }
+
+        if (remaining > 0) {
+          statusText.textContent = 'Running';
+          statusText.className = 'status-text running';
+          animationId = requestAnimationFrame(updateDisplay);
+        } else {
+          statusText.textContent = 'Done!';
+          statusText.className = 'status-text done';
+          timeDisplay.textContent = '00:00.0';
+          currentState.running = false;
+        }
+      } else {
+        statusText.textContent = 'Ready';
+        statusText.className = 'status-text idle';
+        timeDisplay.classList.remove('warning');
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
+        }
+      }
+    }
+
+    // Load settings and setup presets
+    async function loadSettings() {
+      try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        const settings = data.settings || {};
+        
+        // Set default duration
+        const defaultDuration = settings.defaultDurationSeconds || 45;
+        durationInput.value = defaultDuration;
+        
+        // Setup presets
+        const presets = settings.presets || [30, 45, 60];
+        presetsContainer.innerHTML = '';
+        
+        presets.forEach(preset => {
+          const btn = document.createElement('button');
+          btn.className = 'preset-btn';
+          btn.textContent = `${preset}s`;
+          btn.addEventListener('click', () => {
+            durationInput.value = preset;
+            vibrate([10]);
+          });
+          presetsContainer.appendChild(btn);
+        });
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        showToast('Failed to load settings');
+      }
+    }
+
+    // Socket event handlers
+    socket.on('connect', () => {
+      connectionStatus.classList.remove('disconnected');
+      console.log('Connected to server');
+    });
+
+    socket.on('disconnect', () => {
+      connectionStatus.classList.add('disconnected');
+      console.log('Disconnected from server');
+    });
+
+    socket.on('state', (state) => {
+      currentState = state;
+      if (state.running && state.endTime) {
+        currentState.endTime = state.endTime;
+        updateDisplay();
+      } else {
+        timeDisplay.textContent = formatTime(state.durationMs);
+        updateDisplay();
+      }
+    });
+
+    socket.on('start', (state) => {
+      currentState = state;
+      currentState.endTime = state.endTime;
+      vibrate([20, 50, 20]);
+      showToast('Timer started!');
+      updateDisplay();
+    });
+
+    socket.on('reset', (state) => {
+      currentState = state;
+      currentState.endTime = null;
+      timeDisplay.textContent = formatTime(state.durationMs);
+      vibrate([10]);
+      showToast('Timer reset');
+      updateDisplay();
+    });
+
+    socket.on('tick', (state) => {
+      currentState = state;
+      // Don't update display here, let the animation frame handle it
+    });
+
+    socket.on('done', () => {
+      vibrate([100, 50, 100, 50, 100]);
+      showToast('Time\'s up!', 3000);
+      updateDisplay();
+    });
+
+    // Button event handlers
+    startBtn.addEventListener('click', () => {
+      const duration = parseInt(durationInput.value) || 45;
+      const durationMs = duration * 1000;
+      
+      vibrate([15]);
+      socket.emit('start', { durationMs });
+    });
+
+    resetBtn.addEventListener('click', () => {
+      vibrate([10]);
+      socket.emit('reset');
+    });
+
+    // Prevent zooming on inputs
+    durationInput.addEventListener('focus', (e) => {
+      e.target.style.fontSize = '16px';
+    });
+
+    durationInput.addEventListener('blur', (e) => {
+      e.target.style.fontSize = '18px';
+    });
+
+    // Handle duration input changes
+    durationInput.addEventListener('input', () => {
+      const duration = parseInt(durationInput.value) || 45;
+      timeDisplay.textContent = formatTime(duration * 1000);
+    });
+
+    // Prevent context menu on long press
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
+    // Initialize
+    loadSettings();
+    
+    // Request current state
+    socket.emit('get-state');
+  </script>
+</body>
+</html>

@@ -353,6 +353,11 @@ app.get('/api/state', (_req, res) => {
   res.json(getState());
 });
 
+// Mobile control interface
+app.get('/c', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'control.html'));
+});
+
 io.on('connection', (socket) => {
   // Send current state to new client
   socket.emit('state', getState());
