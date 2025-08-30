@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Counter Control</title>
   <style>
     :root {
@@ -42,10 +42,13 @@
 
     .container {
       height: 100vh;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      padding: 16px;
+      height: 100dvh; /* Dynamic viewport height for mobile */
+      display: flex;
+      flex-direction: column;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px;
       gap: 16px;
+      min-height: 100vh;
+      min-height: 100dvh;
     }
 
     .header {
@@ -61,6 +64,7 @@
     }
 
     .status-display {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -100,9 +104,13 @@
     .status-text.done { color: var(--status-done); }
 
     .controls {
-      display: grid;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
       gap: 12px;
-      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding-bottom: max(env(safe-area-inset-bottom, 0), 8px);
+      min-height: fit-content;
+      z-index: 10;
     }
 
     .duration-row {
@@ -156,18 +164,42 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
+      position: sticky;
+      bottom: 0;
+      background: var(--bg);
+      padding-top: 8px;
+    }
+
+    /* Fallback for older browsers */
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    /* Modern browsers will use grid */
+    @supports (display: grid) {
+      .action-buttons {
+        display: grid;
+        flex-wrap: initial;
+      }
     }
 
     .btn {
-      padding: 20px;
+      padding: 24px 20px;
       border: none;
-      border-radius: 12px;
-      font-size: 18px;
+      border-radius: 16px;
+      font-size: 20px;
       font-weight: 700;
       cursor: pointer;
       transition: all 150ms ease;
       letter-spacing: 0.5px;
       text-transform: uppercase;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     .btn:active {
@@ -221,7 +253,7 @@
     /* Toast notifications */
     .toast {
       position: fixed;
-      bottom: 100px;
+      bottom: calc(100px + env(safe-area-inset-bottom, 0));
       left: 50%;
       transform: translateX(-50%);
       background: var(--surface);
@@ -237,6 +269,37 @@
 
     .toast.show {
       opacity: 1;
+    }
+
+    /* iPhone specific fixes */
+    @supports (-webkit-touch-callout: none) {
+      .container {
+        height: -webkit-fill-available;
+      }
+      
+      .btn {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+      }
+      
+      .duration-input {
+        -webkit-appearance: none;
+        appearance: none;
+        border-radius: 12px;
+      }
+    }
+
+    /* Debug info */
+    .debug-info {
+      position: fixed;
+      top: 50px;
+      left: 10px;
+      font-size: 10px;
+      color: yellow;
+      z-index: 9999;
+      background: rgba(0,0,0,0.7);
+      padding: 4px;
+      border-radius: 4px;
     }
   </style>
 </head>
@@ -266,6 +329,9 @@
         <button id="startBtn" class="btn btn-start">Start</button>
         <button id="resetBtn" class="btn btn-reset">Reset</button>
       </div>
+
+      <!-- Debug info for troubleshooting -->
+      <div class="debug-info" id="debugInfo"></div>
     </div>
   </div>
 
@@ -282,6 +348,19 @@
     const presetsContainer = document.getElementById('presetsContainer');
     const connectionStatus = document.getElementById('connectionStatus');
     const toast = document.getElementById('toast');
+    const debugInfo = document.getElementById('debugInfo');
+
+    // Debug function
+    function updateDebugInfo() {
+      if (debugInfo) {
+        debugInfo.innerHTML = `
+          Screen: ${window.screen.width}x${window.screen.height}<br>
+          Viewport: ${window.innerWidth}x${window.innerHeight}<br>
+          Buttons: ${startBtn ? 'OK' : 'MISSING'} | ${resetBtn ? 'OK' : 'MISSING'}<br>
+          UserAgent: ${navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Other'}
+        `;
+      }
+    }
 
     // Socket connection
     const socket = io();
@@ -469,6 +548,20 @@
     
     // Request current state
     socket.emit('get-state');
+
+    // Debug info for iPhone issues
+    console.log('Screen dimensions:', window.screen.width, 'x', window.screen.height);
+    console.log('Viewport dimensions:', window.innerWidth, 'x', window.innerHeight);
+    console.log('User agent:', navigator.userAgent);
+    
+    // Ensure buttons are visible on load
+    setTimeout(() => {
+      const buttons = document.querySelectorAll('.btn');
+      buttons.forEach(btn => {
+        const rect = btn.getBoundingClientRect();
+        console.log('Button position:', btn.textContent, rect.top, rect.bottom, 'viewport height:', window.innerHeight);
+      });
+    }, 1000);
   </script>
 </body>
 </html>
