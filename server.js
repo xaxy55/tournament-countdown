@@ -339,7 +339,12 @@ app.post('/api/start', (req, res) => {
   res.json({ ok: true, state });
 });
 
-app.post('/api/reset', (_req, res) => {
+app.post('/api/reset', (req, res) => {
+  const { durationMs } = req.body || {};
+  // If duration is provided, update it
+  if (Number.isFinite(durationMs) && durationMs >= 0) {
+    countdown.durationMs = Math.max(0, Math.floor(durationMs));
+  }
   countdown.endTime = null;
   countdown.running = false;
   stopTicker();
@@ -374,7 +379,11 @@ io.on('connection', (socket) => {
     startTicker();
   });
 
-  socket.on('reset', () => {
+  socket.on('reset', ({ durationMs } = {}) => {
+    // If duration is provided, update it
+    if (Number.isFinite(durationMs) && durationMs >= 0) {
+      countdown.durationMs = Math.max(0, Math.floor(durationMs));
+    }
     countdown.endTime = null;
     countdown.running = false;
     stopTicker();

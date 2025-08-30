@@ -288,19 +288,6 @@
         border-radius: 12px;
       }
     }
-
-    /* Debug info */
-    .debug-info {
-      position: fixed;
-      top: 50px;
-      left: 10px;
-      font-size: 10px;
-      color: yellow;
-      z-index: 9999;
-      background: rgba(0,0,0,0.7);
-      padding: 4px;
-      border-radius: 4px;
-    }
   </style>
 </head>
 <body>
@@ -329,9 +316,6 @@
         <button id="startBtn" class="btn btn-start">Start</button>
         <button id="resetBtn" class="btn btn-reset">Reset</button>
       </div>
-
-      <!-- Debug info for troubleshooting -->
-      <div class="debug-info" id="debugInfo"></div>
     </div>
   </div>
 
@@ -348,19 +332,6 @@
     const presetsContainer = document.getElementById('presetsContainer');
     const connectionStatus = document.getElementById('connectionStatus');
     const toast = document.getElementById('toast');
-    const debugInfo = document.getElementById('debugInfo');
-
-    // Debug function
-    function updateDebugInfo() {
-      if (debugInfo) {
-        debugInfo.innerHTML = `
-          Screen: ${window.screen.width}x${window.screen.height}<br>
-          Viewport: ${window.innerWidth}x${window.innerHeight}<br>
-          Buttons: ${startBtn ? 'OK' : 'MISSING'} | ${resetBtn ? 'OK' : 'MISSING'}<br>
-          UserAgent: ${navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Other'}
-        `;
-      }
-    }
 
     // Socket connection
     const socket = io();
@@ -484,7 +455,7 @@
     socket.on('start', (state) => {
       currentState = state;
       currentState.endTime = state.endTime;
-      vibrate([20, 50, 20]);
+      vibrate([15]);
       showToast('Timer started!');
       updateDisplay();
     });
@@ -519,8 +490,13 @@
     });
 
     resetBtn.addEventListener('click', () => {
+      const duration = parseInt(durationInput.value) || 45;
+      const durationMs = duration * 1000;
+      
       vibrate([10]);
-      socket.emit('reset');
+      
+      // Send reset with the current duration
+      socket.emit('reset', { durationMs });
     });
 
     // Prevent zooming on inputs
@@ -544,26 +520,10 @@
     });
 
     // Initialize
-    updateDebugInfo();
     loadSettings();
     
     // Request current state
     socket.emit('get-state');
-
-    // Debug info for iPhone issues
-    console.log('Screen dimensions:', window.screen.width, 'x', window.screen.height);
-    console.log('Viewport dimensions:', window.innerWidth, 'x', window.innerHeight);
-    console.log('User agent:', navigator.userAgent);
-    
-    // Ensure buttons are visible on load
-    setTimeout(() => {
-      const buttons = document.querySelectorAll('.btn');
-      buttons.forEach(btn => {
-        const rect = btn.getBoundingClientRect();
-        console.log('Button position:', btn.textContent, rect.top, rect.bottom, 'viewport height:', window.innerHeight);
-      });
-      updateDebugInfo();
-    }, 1000);
   </script>
 </body>
 </html>
