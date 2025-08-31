@@ -1,8 +1,8 @@
 {
   "name": "tournament-countdown-controller",
-  "version": "1.0.0",
-  "description": "ESP32 controller for tournament countdown timer",
-  "keywords": ["esp32", "tournament", "countdown", "timer", "arduino"],
+  "version": "1.1.0",
+  "description": "ESP8266 controller for tournament countdown timer with 7-segment display",
+  "keywords": ["esp8266", "tournament", "countdown", "timer", "arduino", "7-segment", "tm1637"],
   "authors": [
     {
       "name": "Tournament Countdown Team",
@@ -12,8 +12,9 @@
   "license": "MIT",
   "dependencies": {
     "ArduinoJson": "^6.21.0",
-    "WebSockets": "^2.4.0"
+    "WebSockets": "^2.4.0",
+    "TM1637": "^1.2.0"
   },
   "frameworks": ["arduino"],
-  "platforms": ["espressif32"]
+  "platforms": ["espressif8266"]
 }

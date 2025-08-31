@@ -1,18 +1,20 @@
-# Arduino ESP32 Tournament Countdown Controller
+# Arduino ESP8266 Tournament Countdown Controller
 
-This Arduino sketch provides physical button control for the Tournament Countdown server using an ESP32 microcontroller.
+This Arduino sketch provides physical button control for the Tournament Countdown server using an ESP8266 microcontroller with integrated 7-segment display.
 
 ## Features
 
 - **2 Physical Buttons**: Start and Reset timer controls
 - **2 Status LEDs**: Visual indicators for timer state
+- **7-Segment Display**: Real-time countdown display in MM:SS format
 - **WiFi Connectivity**: Connects to tournament countdown server via HTTP API
 - **Real-time Updates**: WebSocket connection for instant state synchronization
 - **Robust Design**: Automatic reconnection and error handling
 
 ## Hardware Requirements
 
-- ESP32 Development Board (e.g., ESP32-WROOM-32, NodeMCU-32S)
+- ESP8266 Development Board (e.g., NodeMCU ESP8266, Wemos D1 Mini)
+- TM1637 4-digit 7-segment display module
 - 2x Push buttons (momentary, normally open)
 - 2x LEDs (different colors recommended - e.g., Green and Blue)
 - 2x 220Ω resistors (for LED current limiting)
@@ -22,26 +24,38 @@ This Arduino sketch provides physical button control for the Tournament Countdow
 
 ## Pin Configuration
 
-| Component | ESP32 Pin | Description |
-|-----------|-----------|-------------|
-| Start Button | GPIO 2 | Press to start timer |
-| Reset Button | GPIO 4 | Press to reset timer |
-| Status LED | GPIO 5 | Green LED - indicates timer running/done |
-| Ready LED | GPIO 18 | Blue LED - indicates ready/idle state |
+| Component | ESP8266 Pin | NodeMCU Pin | Description |
+|-----------|-------------|-------------|-------------|
+| Start Button | GPIO 14 | D5 | Press to start timer |
+| Reset Button | GPIO 12 | D6 | Press to reset timer |
+| Status LED | GPIO 13 | D7 | Green LED - indicates timer running/done |
+| Ready LED | GPIO 15 | D8 | Blue LED - indicates ready/idle state |
+| Display CLK | GPIO 2 | D4 | 7-segment display clock |
+| Display DIO | GPIO 0 | D3 | 7-segment display data |
 
 ## Wiring Diagram
 
 ```mermaid
 graph TB
-    subgraph "ESP32 Development Board"
-        ESP32[ESP32]
-        GPIO2[GPIO 2]
-        GPIO4[GPIO 4]
-        GPIO5[GPIO 5]
-        GPIO18[GPIO 18]
+    subgraph "ESP8266 Development Board (NodeMCU)"
+        ESP8266[ESP8266]
+        D3[D3 - GPIO 0]
+        D4[D4 - GPIO 2]
+        D5[D5 - GPIO 14]
+        D6[D6 - GPIO 12]
+        D7[D7 - GPIO 13]
+        D8[D8 - GPIO 15]
         GND1[GND]
         GND2[GND]
         VCC[3.3V]
+    end
+    
+    subgraph "TM1637 Display"
+        DISP[4-Digit Display]
+        CLK[CLK]
+        DIO[DIO]
+        VCCDISP[VCC]
+        GNDDISP[GND]
     end
     
     subgraph "Buttons"
@@ -56,21 +70,27 @@ graph TB
         R2[220Ω]
     end
     
+    %% Display connections
+    D4 -->|CLK| CLK
+    D3 -->|DIO| DIO
+    VCC -->|Power| VCCDISP
+    GND1 -->|Ground| GNDDISP
+    
     %% Button connections
-    StartBtn -->|Press| GPIO2
-    GPIO2 -->|Pull-up| VCC
+    StartBtn -->|Press| D5
+    D5 -->|Pull-up| VCC
     StartBtn -->|Common| GND1
     
-    ResetBtn -->|Press| GPIO4
-    GPIO4 -->|Pull-up| VCC
+    ResetBtn -->|Press| D6
+    D6 -->|Pull-up| VCC
     ResetBtn -->|Common| GND1
     
     %% LED connections
-    GPIO5 -->|Current Limited| R1
+    D7 -->|Current Limited| R1
     R1 --> StatusLED
     StatusLED -->|Cathode| GND2
     
-    GPIO18 -->|Current Limited| R2
+    D8 -->|Current Limited| R2
     R2 --> ReadyLED
     ReadyLED -->|Cathode| GND2
     
@@ -78,14 +98,21 @@ graph TB
     style ResetBtn fill:#FFB6C1
     style StatusLED fill:#90EE90
     style ReadyLED fill:#87CEEB
+    style DISP fill:#FFD700
 ```
 
 ## Circuit Details
 
+### TM1637 Display Connections
+- **VCC** → 3.3V or 5V power supply
+- **GND** → Ground
+- **CLK** → D4 (GPIO 2) - Clock signal
+- **DIO** → D3 (GPIO 0) - Data signal
+
 ### Button Connections
 - Connect one side of each button to its respective GPIO pin
 - Connect the other side of each button to GND
-- The ESP32's internal pull-up resistors are used (configured in software)
+- The ESP8266's internal pull-up resistors are used (configured in software)
 
 ### LED Connections
 - Connect the anode (longer leg) of each LED to its respective GPIO pin through a 220Ω resistor
@@ -93,17 +120,17 @@ graph TB
 
 ## Software Setup
 
-### 1. Install Arduino IDE and ESP32 Support
+### 1. Install Arduino IDE and ESP8266 Support
 
 1. Download and install [Arduino IDE](https://www.arduino.cc/en/software)
-2. Add ESP32 board support:
+2. Add ESP8266 board support:
    - Go to **File > Preferences**
    - Add this URL to "Additional Board Manager URLs": 
      ```
-     https://dl.espressif.com/dl/package_esp32_index.json
+     http://arduino.esp8266.com/stable/package_esp8266com_index.json
      ```
    - Go to **Tools > Board > Boards Manager**
-   - Search for "esp32" and install "ESP32 by Espressif Systems"
+   - Search for "esp8266" and install "ESP8266 by ESP8266 Community"
 
 ### 2. Install Required Libraries
 
@@ -111,30 +138,38 @@ In Arduino IDE, go to **Tools > Manage Libraries** and install:
 
 - **ArduinoJson** by Benoit Blanchon (version 6.x)
 - **WebSockets** by Markus Sattler
+- **TM1637** by Avishay Orpaz (for 7-segment display)
 
 ### 3. Configure the Code
 
-Open `tournament_controller.ino` and update these values:
+Copy `config.h.example` to `config.h` and update these values:
 
 ```cpp
 // WiFi credentials
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* WIFI_SSID = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
 // Server configuration
-const char* serverHost = "192.168.1.100";  // Your server's IP address
-const int serverPort = 3000;
-const char* serverURL = "http://192.168.1.100:3000";  // Your server's URL
+const char* SERVER_HOST = "192.168.1.100";  // Your server's IP address
+const int SERVER_PORT = 3000;
+const char* SERVER_URL = "http://192.168.1.100:3000";  // Your server's URL
 ```
 
-### 4. Upload to ESP32
+### 4. Upload to ESP8266
 
-1. Connect your ESP32 to your computer via USB
-2. Select your ESP32 board: **Tools > Board > ESP32 Arduino > [Your ESP32 Board]**
+1. Connect your ESP8266 (NodeMCU) to your computer via USB
+2. Select your ESP8266 board: **Tools > Board > ESP8266 Boards > NodeMCU 1.0 (ESP-12E Module)**
 3. Select the correct port: **Tools > Port > [Your COM/USB Port]**
 4. Click **Upload** to compile and upload the code
 
 ## Usage
+
+### Display Features
+
+The 7-segment display shows:
+- **Current countdown time** in MM:SS format (e.g., "05:30" for 5 minutes 30 seconds)
+- **"00:00"** when timer is idle or reset
+- **Real-time updates** synchronized with the web interface
 
 ### LED Status Indicators
 

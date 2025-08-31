@@ -19,9 +19,10 @@
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
 #include <WebSocketsClient.h>
+#include <TM1637Display.h>
 #include "config.h"
 
-// Note: ESP8266 version
+// Note: ESP8266 version with 7-segment display support
 
 // Button debouncing
 unsigned long lastStartPress = 0;
@@ -35,8 +36,20 @@ unsigned long lastStatusCheck = 0;
 // WebSocket client for real-time updates
 WebSocketsClient webSocket;
 
+// 7-Segment Display
+TM1637Display display(DISPLAY_CLK_PIN, DISPLAY_DIO_PIN);
+
+// Timer display variables
+int currentTimerSeconds = 0;
+unsigned long lastDisplayUpdate = 0;
+unsigned long lastPeriodicCheck = 0;
+
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
+  
+  // Initialize display
+  display.setBrightness(0x0f);  // Maximum brightness
+  display.showNumberDec(0, true);  // Show "00:00" at startup
   
   // Initialize pins
   pinMode(START_BUTTON_PIN, INPUT_PULLUP);
@@ -73,6 +86,12 @@ void loop() {
   if (!webSocket.isConnected() && millis() - lastStatusCheck > STATUS_CHECK_INTERVAL_MS) {
     checkTimerStatus();
     lastStatusCheck = millis();
+  }
+  
+  // Even when WebSocket is connected, periodically verify timer state for display accuracy
+  if (webSocket.isConnected() && millis() - lastPeriodicCheck > 1000) {
+    checkTimerStatus();
+    lastPeriodicCheck = millis();
   }
   
   delay(50);
@@ -216,7 +235,32 @@ void checkTimerStatus() {
   http.end();
 }
 
+void updateDisplay(int remainingMs) {
+  // Ensure we don't show negative values
+  if (remainingMs < 0) remainingMs = 0;
+  
+  int remainingSeconds = remainingMs / 1000;
+  int minutes = remainingSeconds / 60;
+  int seconds = remainingSeconds % 60;
+  
+  // Format as MMSS for 4-digit display
+  int displayValue = minutes * 100 + seconds;
+  
+  // Update display with colon separator for time format
+  display.showNumberDecEx(displayValue, 0b01000000, true);  // Show with colon
+  
+  // Debug output for troubleshooting
+  DEBUG_PRINTF("Display update: %d ms -> %02d:%02d (value: %04d)\n", 
+              remainingMs, minutes, seconds, displayValue);
+  
+  currentTimerSeconds = remainingSeconds;
+  lastDisplayUpdate = millis();
+}
+
 void updateLEDs(bool running, int remainingMs) {
+  // Update display
+  updateDisplay(remainingMs);
+  
   if (running && remainingMs > 0) {
     // Timer running
     digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
@@ -239,7 +283,9 @@ void updateLEDs(bool running, int remainingMs) {
     digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
     timerRunning = false;
   } else {
-    // Timer idle/ready
+    // Timer idle/ready - show 00:00 on display
+    display.showNumberDecEx(0, 0b01000000, true);  // Show "00:00"
+    DEBUG_PRINTLN("Display: Timer idle - showing 00:00");
     digitalWrite(STATUS_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
     digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? HIGH : LOW);
     timerRunning = false;
@@ -268,6 +314,8 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 }
 
 void handleWebSocketMessage(String message) {
+  DEBUG_PRINTF("Raw WebSocket message: %s\n", message.c_str());
+  
   // Parse Socket.IO message format
   if (message.startsWith("42[\"")) {
     // Extract event type and data
@@ -276,12 +324,14 @@ void handleWebSocketMessage(String message) {
     
     if (firstQuote > 0 && secondQuote > 0) {
       String eventType = message.substring(4, firstQuote);
+      DEBUG_PRINTF("Event type: %s\n", eventType.c_str());
       
-      if (eventType == "start" || eventType == "reset" || eventType == "state" || eventType == "tick") {
+      if (eventType == "start" || eventType == "reset" || eventType == "state" || eventType == "tick" || eventType == "update") {
         // Extract state data
         int dataStart = message.indexOf(",", secondQuote);
         if (dataStart > 0) {
           String stateData = message.substring(dataStart + 1, message.length() - 2);
+          DEBUG_PRINTF("State data: %s\n", stateData.c_str());
           
           // Parse state JSON
           DynamicJsonDocument doc(1024);
@@ -289,6 +339,9 @@ void handleWebSocketMessage(String message) {
           
           bool running = doc["running"];
           int remainingMs = doc["remainingMs"];
+          
+          DEBUG_PRINTF("Timer state - Running: %s, Remaining: %dms\n", 
+                      running ? "true" : "false", remainingMs);
           
           updateLEDs(running, remainingMs);
           
