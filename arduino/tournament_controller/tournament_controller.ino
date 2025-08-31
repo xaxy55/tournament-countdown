@@ -307,6 +307,16 @@ void updateLEDs(bool running, int remainingMs) {
   // Update display
   updateDisplay(remainingMs);
   
+  // Update local countdown tracking
+  if (running && remainingMs > 0) {
+    lastKnownRemainingMs = remainingMs;
+    timerStartTime = millis();
+    localCountdownActive = true;
+  } else {
+    localCountdownActive = false;
+    lastDisplayedMs = -1;  // Force display refresh on next update
+  }
+  
   if (running && remainingMs > 0) {
     // Timer running
     digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
