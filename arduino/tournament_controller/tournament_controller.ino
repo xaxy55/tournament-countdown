@@ -15,15 +15,13 @@
  * 3. Install required libraries: ArduinoJson and WebSockets
  */
 
-#include <WiFi.h>
-#include <HTTPClient.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
 #include <WebSocketsClient.h>
 #include "config.h"
 
-// Alternative include if WebSocketsClient.h doesn't work:
-// #include <WebSockets.h>
-// #include <socketIOclient.h>
+// Note: ESP8266 version
 
 // Button debouncing
 unsigned long lastStartPress = 0;
@@ -134,8 +132,9 @@ void startTimer() {
     return;
   }
   
+  WiFiClient client;
   HTTPClient http;
-  http.begin(String(SERVER_URL) + "/api/start");
+  http.begin(client, String(SERVER_URL) + "/api/start");
   http.addHeader("Content-Type", "application/json");
   
   // Use configured default duration
@@ -166,8 +165,9 @@ void resetTimer() {
     return;
   }
   
+  WiFiClient client;
   HTTPClient http;
-  http.begin(String(SERVER_URL) + "/api/reset");
+  http.begin(client, String(SERVER_URL) + "/api/reset");
   http.addHeader("Content-Type", "application/json");
   
   int httpResponseCode = http.POST("{}");
@@ -194,8 +194,9 @@ void checkTimerStatus() {
     return;
   }
   
+  WiFiClient client;
   HTTPClient http;
-  http.begin(String(SERVER_URL) + "/api/state");
+  http.begin(client, String(SERVER_URL) + "/api/state");
   
   int httpResponseCode = http.GET();
   
