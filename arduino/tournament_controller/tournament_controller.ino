@@ -49,7 +49,7 @@ void setup() {
   
   // Initialize display
   display.setBrightness(0x0f);  // Maximum brightness
-  display.showNumberDec(0, true);  // Show "00:00" at startup
+  display.showNumberDecEx(0, 0b00100000, true);  // Show "00.0" at startup
   
   // Initialize pins
   pinMode(START_BUTTON_PIN, INPUT_PULLUP);
@@ -239,21 +239,38 @@ void updateDisplay(int remainingMs) {
   // Ensure we don't show negative values
   if (remainingMs < 0) remainingMs = 0;
   
-  int remainingSeconds = remainingMs / 1000;
-  int minutes = remainingSeconds / 60;
-  int seconds = remainingSeconds % 60;
+  int totalSeconds = remainingMs / 1000;
+  int minutes = totalSeconds / 60;
   
-  // Format as MMSS for 4-digit display
-  int displayValue = minutes * 100 + seconds;
+  // Decide format based on remaining time
+  int displayValue;
+  bool useDecimalPoint = false;
   
-  // Update display with colon separator for time format
-  display.showNumberDecEx(displayValue, 0b01000000, true);  // Show with colon
+  if (totalSeconds >= 60) {
+    // If 60+ seconds, show MM:SS format
+    int seconds = totalSeconds % 60;
+    displayValue = minutes * 100 + seconds;
+    useDecimalPoint = true;  // Use colon for MM:SS
+    DEBUG_PRINTF("Display update: %d ms -> %02d:%02d (MM:SS format, value: %04d)\n", 
+                remainingMs, minutes, seconds, displayValue);
+  } else {
+    // If less than 60 seconds, show SS.MS format (seconds and tenths of seconds)
+    int seconds = totalSeconds;
+    int tenthsOfSecond = (remainingMs % 1000) / 100;  // Get tenths of seconds (0-9)
+    displayValue = seconds * 100 + tenthsOfSecond;
+    useDecimalPoint = true;  // Use decimal point for SS.MS
+    DEBUG_PRINTF("Display update: %d ms -> %02d.%01d (SS.MS format, value: %04d)\n", 
+                remainingMs, seconds, tenthsOfSecond, displayValue);
+  }
   
-  // Debug output for troubleshooting
-  DEBUG_PRINTF("Display update: %d ms -> %02d:%02d (value: %04d)\n", 
-              remainingMs, minutes, seconds, displayValue);
+  // Update display with appropriate separator
+  if (useDecimalPoint && totalSeconds < 60) {
+    display.showNumberDecEx(displayValue, 0b00100000, true);  // Show with decimal point (SS.MS)
+  } else {
+    display.showNumberDecEx(displayValue, 0b01000000, true);  // Show with colon (MM:SS)
+  }
   
-  currentTimerSeconds = remainingSeconds;
+  currentTimerSeconds = totalSeconds;
   lastDisplayUpdate = millis();
 }
 
@@ -283,9 +300,9 @@ void updateLEDs(bool running, int remainingMs) {
     digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
     timerRunning = false;
   } else {
-    // Timer idle/ready - show 00:00 on display
-    display.showNumberDecEx(0, 0b01000000, true);  // Show "00:00"
-    DEBUG_PRINTLN("Display: Timer idle - showing 00:00");
+    // Timer idle/ready - show 00.0 on display (assuming timers are usually under 60 seconds)
+    display.showNumberDecEx(0, 0b00100000, true);  // Show "00.0" with decimal point
+    DEBUG_PRINTLN("Display: Timer idle - showing 00.0");
     digitalWrite(STATUS_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
     digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? HIGH : LOW);
     timerRunning = false;
