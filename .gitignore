@@ -142,3 +142,4 @@ vite.config.ts.timestamp-*
 # Ignore old mockup screenshots
 /docs/screenshots/*.svg
 arduino/config.h
+arduino/tournament_controller/config.h
