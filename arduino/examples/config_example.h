@@ -1,7 +1,7 @@
 /*
  * Example configuration file for Tournament Countdown Controller
  * 
- * Copy this file to ../config.h and update the values below
+ * Copy this file to ../tournament_controller/config.h and update the values below
  */
 
 #ifndef CONFIG_H
@@ -12,29 +12,33 @@
 // ============================================================================
 #define WIFI_SSID "YOUR_WIFI_SSID"           // Replace with your WiFi network name
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"   // Replace with your WiFi password
-#define WIFI_TIMEOUT_SECONDS 20
+#define WIFI_TIMEOUT_SECONDS 20              // WiFi connection timeout (seconds)
 
 // ============================================================================
 // SERVER CONFIGURATION - UPDATE THESE VALUES
 // ============================================================================
-#define SERVER_HOST "192.168.1.100"          // Replace with your server's IP address
+#define SERVER_HOST "192.168.69.107"          // Replace with your server's IP address
 #define SERVER_PORT 3000
-#define SERVER_URL "http://192.168.1.100:3000"  // Replace with your server's full URL
+#define SERVER_URL "http://192.168.69.107:3000"  // Replace with your server's full URL
 
 // ============================================================================
 // HARDWARE PIN CONFIGURATION
 // ============================================================================
-// Standard ESP32 DevKit pin assignments
-#define START_BUTTON_PIN 2      // Start button input pin
-#define RESET_BUTTON_PIN 4      // Reset button input pin  
-#define STATUS_LED_PIN 5        // Status LED output pin (Green - shows timer running/done)
-#define READY_LED_PIN 18        // Ready LED output pin (Blue - shows idle/ready state)
+// ESP8266 NodeMCU pin assignments (recommended setup)
+#define START_BUTTON_PIN D2      // Start button input pin (GPIO 4)
+#define RESET_BUTTON_PIN D1      // Reset button input pin (GPIO 5)
+#define STATUS_LED_PIN D8        // Status LED output pin (GPIO 15 - Green - shows timer running/done)
+#define READY_LED_PIN D6         // Ready LED output pin (GPIO 12 - Blue - shows idle/ready state)
 
-// Alternative pin assignments (uncomment to use)
-// #define START_BUTTON_PIN 14
-// #define RESET_BUTTON_PIN 12
-// #define STATUS_LED_PIN 13
-// #define READY_LED_PIN 15
+// 7-Segment Display pins (TM1637)
+#define DISPLAY_CLK_PIN D4       // Clock pin for 7-segment display (GPIO 2)
+#define DISPLAY_DIO_PIN D3       // Data pin for 7-segment display (GPIO 0)
+
+// Alternative ESP8266 pin assignments (uncomment to use different pins)
+// #define START_BUTTON_PIN D5    // GPIO 14
+// #define RESET_BUTTON_PIN D7    // GPIO 13
+// #define STATUS_LED_PIN D0      // GPIO 16
+// #define READY_LED_PIN D2       // GPIO 4
 
 // ============================================================================
 // TIMER CONFIGURATION
