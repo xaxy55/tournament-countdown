@@ -23,7 +23,7 @@
 - Optional Raspberry Pi GPIO relay blinking when time is up
 - Optional end-of-timer sound (custom URL or from /sounds, with volume)
 - Theme customization and settings persisted to disk
-- **Arduino ESP32 controller support** with physical buttons and LED indicators
+- **Arduino ESP8266 controller support** with physical buttons, LED indicators, and 7-segment display
 
 ## Table of contents
 
@@ -34,7 +34,7 @@
 	- [Run locally](#run-locally)
 		- [API](#api)
 	- [Notes](#notes)
-	- [Arduino ESP32 Controller](#arduino-esp32-controller)
+	- [Arduino ESP8266 Controller](#arduino-esp8266-controller)
 	- [Raspberry Pi relay output (optional)](#raspberry-pi-relay-output-optional)
 		- [Full setup on Raspberry Pi](#full-setup-on-raspberry-pi)
 	- [Illustrations](#illustrations)
@@ -125,19 +125,21 @@ OpenAPI/Swagger:
 - This uses in-memory state; restarting the server clears the countdown.
 - To expose publicly, put behind a reverse proxy or deploy to a host.
 
-## Arduino ESP32 Controller
+## Arduino ESP8266 Controller
 
-Physical hardware controller with buttons and LEDs for tournament countdown control.
+Physical hardware controller with buttons, LEDs, and 7-segment display for tournament countdown control.
 
 ### Features
 - **2 Physical Buttons**: Start and Reset timer controls
 - **2 Status LEDs**: Visual indicators for timer state
+- **7-Segment Display**: Real-time countdown display in MM:SS format
 - **WiFi Connectivity**: Connects to tournament server via HTTP API and WebSocket
 - **Real-time Sync**: Instant updates when timer state changes
 - **Easy Setup**: Configuration file for quick customization
 
 ### Hardware Required
-- ESP32 development board
+- ESP8266 development board (NodeMCU recommended)
+- TM1637 4-digit 7-segment display module
 - 2x push buttons (momentary, normally open)
 - 2x LEDs (Green for status, Blue for ready state)
 - 2x 220Ω resistors for LED current limiting
@@ -148,15 +150,15 @@ Physical hardware controller with buttons and LEDs for tournament countdown cont
 2. Copy `examples/config_example.h` to `config.h`
 3. Update WiFi credentials and server IP in `config.h`
 4. Open `tournament_controller.ino` in Arduino IDE
-5. Install required libraries: ArduinoJson and WebSockets
-6. Upload to your ESP32
+5. Install required libraries: ArduinoJson, WebSockets, and TM1637
+6. Upload to your ESP8266
 
-### LED Status Indicators
-| Ready LED (Blue) | Status LED (Green) | Timer State |
-|------------------|-------------------|-------------|
-| ON | OFF | Ready/Idle - waiting for start |
-| OFF | ON | Timer running |
-| OFF | Blinking | Timer finished |
+### Status Indicators
+| Ready LED (Blue) | Status LED (Green) | 7-Segment Display | Timer State |
+|------------------|-------------------|-------------------|-------------|
+| ON | OFF | "00:00" | Ready/Idle - waiting for start |
+| OFF | ON | Countdown (MM:SS) | Timer running |
+| OFF | Blinking | "00:00" | Timer finished |
 
 For complete setup instructions, wiring diagrams, and troubleshooting, see [`arduino/README.md`](arduino/README.md).
 
