@@ -21,6 +21,10 @@
 #include <WebSocketsClient.h>
 #include "config.h"
 
+// Alternative include if WebSocketsClient.h doesn't work:
+// #include <WebSockets.h>
+// #include <socketIOclient.h>
+
 // Button debouncing
 unsigned long lastStartPress = 0;
 unsigned long lastResetPress = 0;
