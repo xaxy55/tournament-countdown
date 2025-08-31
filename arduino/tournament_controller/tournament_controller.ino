@@ -42,6 +42,9 @@ TM1637Display display(DISPLAY_CLK_PIN, DISPLAY_DIO_PIN);
 // Timer display variables
 int currentTimerSeconds = 0;
 int lastDisplayedMs = -1;  // Track last displayed milliseconds to avoid unnecessary updates
+int lastKnownRemainingMs = 0;  // Last known timer value from server
+unsigned long timerStartTime = 0;  // When the current timer started (for local countdown)
+bool localCountdownActive = false;  // Whether we're doing local countdown between server updates
 unsigned long lastDisplayUpdate = 0;
 unsigned long lastPeriodicCheck = 0;
 unsigned long lastDisplayRefresh = 0;
@@ -83,6 +86,17 @@ void loop() {
   
   // Check button presses
   checkButtons();
+  
+  // Continuous display update for smooth countdown when timer is running
+  if (timerRunning && localCountdownActive) {
+    unsigned long elapsed = millis() - timerStartTime;
+    int estimatedRemaining = lastKnownRemainingMs - elapsed;
+    if (estimatedRemaining > 0) {
+      updateDisplay(estimatedRemaining);
+    } else {
+      updateDisplay(0);
+    }
+  }
   
   // Periodically check server status if WebSocket is not connected
   if (!webSocket.isConnected() && millis() - lastStatusCheck > STATUS_CHECK_INTERVAL_MS) {
@@ -238,8 +252,18 @@ void checkTimerStatus() {
 }
 
 void updateDisplay(int remainingMs) {
+  // Only update display at specified refresh rate
+  if (millis() - lastDisplayRefresh < DISPLAY_REFRESH_RATE_MS) {
+    return;  // Skip update if not enough time has passed
+  }
+  
   // Ensure we don't show negative values
   if (remainingMs < 0) remainingMs = 0;
+  
+  // Check if we need to update (avoid unnecessary display writes)
+  if (remainingMs == lastDisplayedMs) {
+    return;  // No change, skip update
+  }
   
   int totalSeconds = remainingMs / 1000;
   int minutes = totalSeconds / 60;
@@ -272,8 +296,11 @@ void updateDisplay(int remainingMs) {
     display.showNumberDecEx(displayValue, 0b01000000, true);  // Show with colon (MM:SS)
   }
   
+  // Track what we displayed
+  lastDisplayedMs = remainingMs;
   currentTimerSeconds = totalSeconds;
   lastDisplayUpdate = millis();
+  lastDisplayRefresh = millis();
 }
 
 void updateLEDs(bool running, int remainingMs) {
