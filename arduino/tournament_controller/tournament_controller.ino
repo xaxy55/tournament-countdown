@@ -41,8 +41,10 @@ TM1637Display display(DISPLAY_CLK_PIN, DISPLAY_DIO_PIN);
 
 // Timer display variables
 int currentTimerSeconds = 0;
+int lastDisplayedMs = -1;  // Track last displayed milliseconds to avoid unnecessary updates
 unsigned long lastDisplayUpdate = 0;
 unsigned long lastPeriodicCheck = 0;
+unsigned long lastDisplayRefresh = 0;
 
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
