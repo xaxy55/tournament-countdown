@@ -34,6 +34,12 @@
 #define DISPLAY_CLK_PIN D4       // Clock pin for 7-segment display (GPIO 2)
 #define DISPLAY_DIO_PIN D3       // Data pin for 7-segment display (GPIO 0)
 
+// Display refresh rate (milliseconds) - how often to update the display
+#define DISPLAY_REFRESH_RATE_MS 100    // Update every 100ms for smooth tenths display
+// Alternative rates:
+// #define DISPLAY_REFRESH_RATE_MS 50   // Faster: 20 FPS (very smooth)
+// #define DISPLAY_REFRESH_RATE_MS 200  // Slower: 5 FPS (less smooth, saves processing)
+
 // Alternative ESP8266 pin assignments (uncomment to use different pins)
 // #define START_BUTTON_PIN D5    // GPIO 14
 // #define RESET_BUTTON_PIN D7    // GPIO 13
