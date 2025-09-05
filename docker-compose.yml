@@ -28,6 +28,8 @@ services:
       - /dev/gpiomem:/dev/gpiomem
     privileged: true
     user: root  # Run as root for GPIO access
+    group_add:
+      - gpio  # Add gpio group for device access
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]
