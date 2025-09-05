@@ -1,6 +1,9 @@
 # Use the official Node.js runtime as the base image
 FROM node:18-alpine
 
+# Install build dependencies for native modules (like onoff)
+RUN apk add --no-cache python3 make g++ linux-headers
+
 # Set the working directory in the container
 WORKDIR /app
 
