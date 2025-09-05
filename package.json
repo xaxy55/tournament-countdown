@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "node server.js",
-  "start": "NODE_ENV=production node server.js",
-  "test": "NODE_ENV=test node --test",
-  "shots": "node scripts/capture-screenshots.mjs"
+    "start": "NODE_ENV=production node server.js",
+    "test": "NODE_ENV=test node --test",
+    "shots": "node scripts/capture-screenshots.mjs",
+    "gpio-test": "node scripts/gpio-test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

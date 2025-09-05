@@ -27,6 +27,7 @@ services:
       # Grant access to GPIO devices
       - /dev/gpiomem:/dev/gpiomem
     privileged: true
+    user: root  # Run as root for GPIO access
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]

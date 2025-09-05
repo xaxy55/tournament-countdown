@@ -77,7 +77,9 @@ class RelayController {
     if (!this.enabled) return;
     if (!this.tryLoadOnOff()) return;
     try {
+      console.log(`[GPIO] Attempting to initialize BCM pin ${this.pinNumber} as output`);
       this.pin = new this.Gpio(this.pinNumber, 'out');
+      console.log(`[GPIO] Pin ${this.pinNumber} initialized successfully`);
       this.setRelay(false);
       // best-effort cleanup
       const cleanup = () => {
@@ -89,6 +91,11 @@ class RelayController {
       console.log(`[GPIO] Relay ready on BCM pin ${this.pinNumber} (activeHigh=${this.activeHigh})`);
     } catch (e) {
       console.warn('[GPIO] Failed to init relay pin:', e?.message || e);
+      console.warn('[GPIO] This may be due to:');
+      console.warn('[GPIO]   - Running on non-Raspberry Pi hardware');
+      console.warn('[GPIO]   - Insufficient permissions (try running as root)');
+      console.warn('[GPIO]   - Pin already in use');
+      console.warn('[GPIO]   - Missing /dev/gpiomem access');
       this.enabled = false;
     }
   }
