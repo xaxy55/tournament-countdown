@@ -178,6 +178,9 @@ Install deps and run on the Pi:
 
 ```sh
 npm install
+# Ensure user is in gpio group
+sudo usermod -a -G gpio $USER
+# Log out/in or run: newgrp gpio
 GPIO_ENABLED=1 RELAY_PIN=17 RELAY_ACTIVE_HIGH=1 BLINK_HZ=2 BLINK_DURATION_MS=10000 npm run start
 ```
 
