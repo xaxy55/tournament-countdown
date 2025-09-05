@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  counter-web:
+    image: ghcr.io/xaxy55/tournament-countdown:latest
+    container_name: counter-web-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - GPIO_ENABLED=true
+      - RELAY_PIN=17
+      - RELAY_ACTIVE_HIGH=1
+      - BLINK_HZ=2
+      - BLINK_DURATION_MS=10000  # How long LED stays on (10 seconds)
+    volumes:
+      # Mount data directory for persistent settings
+      - ./data:/app/data
+      # Mount sounds directory if you want to customize sounds
+      - ./public/sounds:/app/public/sounds
+      # Mount GPIO devices for Raspberry Pi GPIO access
+      - /dev/gpiomem:/dev/gpiomem
+      - /dev/mem:/dev/mem
+    devices:
+      # Grant access to GPIO devices
+      - /dev/gpiomem:/dev/gpiomem
+    privileged: true
+    user: root  # Run as root for GPIO access
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - counter-network
+
+networks:
+  counter-network:
+    driver: bridge
+
+# Optional: Add a volume for persistent data if you prefer named volumes
+# volumes:
+#   counter-data:
+#     driver: local
