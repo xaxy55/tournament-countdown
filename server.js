@@ -108,14 +108,15 @@ class RelayController {
     if (!this.enabled || !this.pin) return;
     const dur = Number.isFinite(durationMs) ? Math.max(0, Math.floor(durationMs)) : this.defaultDurationMs;
     this.stopBlinking();
-    const periodMs = Math.max(40, Math.floor(1000 / Math.max(0.1, this.hz))); // clamp sane values
-    const half = Math.floor(periodMs / 2);
-    // start from ON state
+    
+    // For LEDs with built-in blinking, just turn on and leave it on
     this.setRelay(true);
-    this.blinkInterval = setInterval(() => {
-      this.setRelay(!this.currentOn);
-    }, half);
-    this.stopTimeout = setTimeout(() => this.stopBlinking(), dur);
+    
+    // Set timeout to turn off after duration (if duration > 0)
+    if (dur > 0) {
+      this.stopTimeout = setTimeout(() => this.stopBlinking(), dur);
+    }
+    // If duration is 0 or negative, LED stays on until manually stopped
   }
 
   stopBlinking() {
@@ -231,7 +232,7 @@ function startTicker() {
       countdown.running = false;
       stopTicker();
       io.emit('done');
-  // Trigger physical blinking on Raspberry Pi when done
+  // Turn on LED when countdown is done (will stay on for configured duration)
   try { relay.startBlinking(); } catch {}
     }
   }, 1000); // 1 FPS updates; client animates locally
