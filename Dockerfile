@@ -19,7 +19,10 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # Change ownership of the app directory to the nodejs user
 RUN chown -R user:nodejs /app
-USER user
+
+# For GPIO access, we need to run as root or add user to gpio group
+# Comment out the USER line below if GPIO doesn't work
+# USER user
 
 # Expose the port the app runs on
 EXPOSE 3000

@@ -10,10 +10,22 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
+      - GPIO_ENABLED=true
+      - RELAY_PIN=17
+      - RELAY_ACTIVE_HIGH=1
+      - BLINK_HZ=2
+      - BLINK_DURATION_MS=10000
     volumes:
       # Mount the entire project for live development
       - .:/app
       - /app/node_modules
+      # Mount GPIO devices for Raspberry Pi GPIO access
+      - /dev/gpiomem:/dev/gpiomem
+      - /dev/mem:/dev/mem
+    devices:
+      # Grant access to GPIO devices
+      - /dev/gpiomem:/dev/gpiomem
+    privileged: true
     restart: unless-stopped
     command: ["npm", "run", "dev"]
     healthcheck:
