@@ -92,9 +92,9 @@ class RelayController {
     } catch (e) {
       console.warn('[GPIO] Failed to init relay pin:', e?.message || e);
       console.warn('[GPIO] This may be due to:');
+      console.warn('[GPIO]   - Pin already in use (try: pinctrl set 17 ip)');
       console.warn('[GPIO]   - Running on non-Raspberry Pi hardware');
       console.warn('[GPIO]   - Insufficient permissions (try running as root)');
-      console.warn('[GPIO]   - Pin already in use');
       console.warn('[GPIO]   - Missing /dev/gpiomem access');
       this.enabled = false;
     }
@@ -135,8 +135,25 @@ class RelayController {
   dispose() {
     try { this.stopBlinking(); } catch {}
     if (this.pin) {
-      try { this.pin.unexport(); } catch {}
+      try { 
+        this.setRelay(false); // Ensure pin is off before disposing
+        this.pin.unexport(); 
+        console.log(`[GPIO] Pin ${this.pinNumber} unexported successfully`);
+      } catch (e) {
+        console.warn(`[GPIO] Failed to unexport pin ${this.pinNumber}:`, e?.message || e);
+      }
       this.pin = null;
+    }
+  }
+
+  // Force cleanup by writing to sysfs directly
+  static forceCleanupPin(pinNumber) {
+    try {
+      const fs = require('fs');
+      fs.writeFileSync('/sys/class/gpio/unexport', String(pinNumber));
+      console.log(`[GPIO] Force unexported pin ${pinNumber} via sysfs`);
+    } catch (e) {
+      console.warn(`[GPIO] Failed to force cleanup pin ${pinNumber}:`, e?.message || e);
     }
   }
 }
