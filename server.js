@@ -165,16 +165,53 @@ class RelayController {
   }
 }
 
-// Configure relay from environment
-const gpioEnabled = /^1|true$/i.test(String(process.env.GPIO_ENABLED || ''));
-const relay = new RelayController({
-  enabled: gpioEnabled,
-  pinNumber: Number(process.env.RELAY_PIN ?? 17), // BCM numbering
-  activeHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')),
-  hz: Number(process.env.BLINK_HZ ?? 2),
-  defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
-});
-relay.init();
+// Configure relay from environment - async function for pigpio loading
+async function initializeRelay() {
+  const gpioEnabled = /^1|true$/i.test(String(process.env.GPIO_ENABLED || ''));
+  let usePigpio = /^1|true$/i.test(String(process.env.USE_PIGPIO || 'true')); // Default to pigpio
+
+  let relay;
+
+  if (gpioEnabled && usePigpio) {
+    // Try to use pigpio first (more reliable)
+    try {
+      const { PigpioRelayController } = await import('./pigpio-relay-controller.js');
+      relay = new PigpioRelayController({
+        enabled: gpioEnabled,
+        pinNumber: Number(process.env.RELAY_PIN ?? 17), // BCM numbering works correctly with pigpio
+        activeHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')),
+        hz: Number(process.env.BLINK_HZ ?? 2),
+        defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
+      });
+      console.log('[GPIO] Using pigpio controller');
+    } catch (e) {
+      console.warn('[GPIO] Pigpio not available, falling back to onoff');
+      usePigpio = false;
+    }
+  }
+
+  if (gpioEnabled && !usePigpio) {
+    // Fallback to current onoff approach
+    relay = new RelayController({
+      enabled: gpioEnabled,
+      pinNumber: Number(process.env.RELAY_PIN ?? 17), // BCM numbering
+      activeHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')),
+      hz: Number(process.env.BLINK_HZ ?? 2),
+      defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
+    });
+    console.log('[GPIO] Using onoff controller');
+  } else if (!gpioEnabled) {
+    // GPIO disabled
+    relay = new RelayController({ enabled: false });
+    console.log('[GPIO] GPIO disabled');
+  }
+
+  await relay.init();
+  return relay;
+}
+
+// Initialize relay controller
+const relay = await initializeRelay();
 
 // Settings persistence
 const settingsDir = path.join(__dirname, 'data');
