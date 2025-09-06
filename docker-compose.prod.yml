@@ -6,7 +6,7 @@ services:
     container_name: counter-web-app
     environment:
       - NODE_ENV=production
-      - GPIO_ENABLED=true
+      - GPIO_ENABLED=false  # Disable GPIO entirely to test
       - USE_PIGPIO=false  # Use direct GPIO access (working solution)
       - RELAY_PIN=18  # Try BCM pin 18 instead of 17
       - RELAY_ACTIVE_HIGH=0  # Invert logic: LOW=LED blinks, HIGH=LED off
