@@ -3,9 +3,14 @@
  * 
  * Hardware:
  * - 2 push buttons (start/reset)
- * - 2 LEDs (status indicators)
+ * - 2 LEDs (status indicators with connection diagnostics)
  * - ESP8266 development board (NodeMCU/Wemos D1 Mini)
  * - Optional: 7-segment display (TM1637) - can be disabled via config.h
+ * 
+ * LED Status Indicators:
+ * - Normal operation: Ready LED (blue) = idle, Status LED (green) = timer state
+ * - WiFi connection failed: Ready LED flashes FAST (200ms intervals)
+ * - WebSocket connection failed: Ready LED flashes SLOW (1000ms intervals)
  * 
  * This controller connects to the tournament countdown server via WiFi
  * and provides physical button control for starting and resetting the timer.
@@ -287,6 +292,14 @@ void handleConnectionState() {
       connectionState = CONN_WIFI_FAILED;
       DEBUG_PRINTLN("WiFi connection lost - starting fast flash");
     }
+    
+    // Try to reconnect WiFi periodically
+    static unsigned long lastWiFiRetry = 0;
+    if (millis() - lastWiFiRetry > 10000) {  // Retry every 10 seconds
+      DEBUG_PRINTLN("Attempting to reconnect to WiFi...");
+      connectToWiFi();
+      lastWiFiRetry = millis();
+    }
   } else {
     // WiFi is connected, check WebSocket periodically
     if (millis() - lastWebSocketCheck > WEBSOCKET_CHECK_INTERVAL) {
@@ -404,37 +417,55 @@ void updateLEDs(bool running, int remainingMs) {
     lastDisplayedMs = -1;  // Force display refresh on next update
   }
   
+  // Only update LEDs if connection state is normal (not flashing for errors)
+  if (connectionState == CONN_NORMAL) {
+    if (running && remainingMs > 0) {
+      // Timer running
+      digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
+      digitalWrite(STATUS_LED_PIN, LED_ACTIVE_HIGH ? HIGH : LOW);
+      timerRunning = true;
+      timerDone = false;
+    } else if (running && remainingMs <= 0) {
+      // Timer done - blink status LED
+      if (!timerDone) {
+        timerDone = true;
+        DEBUG_PRINTLN("Timer finished!");
+      }
+      // Blink the status LED to indicate timer is done
+      static unsigned long lastBlink = 0;
+      if (millis() - lastBlink > LED_BLINK_INTERVAL_MS) {
+        bool currentState = digitalRead(STATUS_LED_PIN);
+        digitalWrite(STATUS_LED_PIN, !currentState);
+        lastBlink = millis();
+      }
+      digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
+      timerRunning = false;
+    } else {
+      // Timer idle/ready
+#if DISPLAY_ENABLED
+      display.showNumberDecEx(0, 0b00100000, true);  // Show "00.0" with decimal point
+      DEBUG_PRINTLN("Display: Timer idle - showing 00.0");
+#else
+      DEBUG_PRINTLN("Timer idle/ready (display disabled)");
+#endif
+      digitalWrite(STATUS_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
+      digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? HIGH : LOW);
+      timerRunning = false;
+      timerDone = false;
+    }
+  }
+  
+  // Update timer state regardless of LED control
   if (running && remainingMs > 0) {
-    // Timer running
-    digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
-    digitalWrite(STATUS_LED_PIN, LED_ACTIVE_HIGH ? HIGH : LOW);
     timerRunning = true;
     timerDone = false;
   } else if (running && remainingMs <= 0) {
-    // Timer done - blink status LED
+    timerRunning = false;
     if (!timerDone) {
       timerDone = true;
       DEBUG_PRINTLN("Timer finished!");
     }
-    // Blink the status LED to indicate timer is done
-    static unsigned long lastBlink = 0;
-    if (millis() - lastBlink > LED_BLINK_INTERVAL_MS) {
-      bool currentState = digitalRead(STATUS_LED_PIN);
-      digitalWrite(STATUS_LED_PIN, !currentState);
-      lastBlink = millis();
-    }
-    digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
-    timerRunning = false;
   } else {
-    // Timer idle/ready
-#if DISPLAY_ENABLED
-    display.showNumberDecEx(0, 0b00100000, true);  // Show "00.0" with decimal point
-    DEBUG_PRINTLN("Display: Timer idle - showing 00.0");
-#else
-    DEBUG_PRINTLN("Timer idle/ready (display disabled)");
-#endif
-    digitalWrite(STATUS_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
-    digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? HIGH : LOW);
     timerRunning = false;
     timerDone = false;
   }
@@ -444,10 +475,16 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
   switch(type) {
     case WStype_DISCONNECTED:
       DEBUG_PRINTLN("WebSocket Disconnected");
+      // Note: Connection state will be updated in handleConnectionState()
       break;
       
     case WStype_CONNECTED:
       DEBUG_PRINTF("WebSocket Connected to: %s\n", payload);
+      // Reset connection state when WebSocket connects
+      if (connectionState == CONN_WEBSOCKET_FAILED) {
+        connectionState = CONN_NORMAL;
+        DEBUG_PRINTLN("WebSocket connection restored");
+      }
       break;
       
     case WStype_TEXT:

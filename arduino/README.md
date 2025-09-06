@@ -187,12 +187,20 @@ The 7-segment display (when `DISPLAY_ENABLED` is `true`) shows:
 
 ### LED Status Indicators
 
+#### Normal Operation
 | Ready LED (Blue) | Status LED (Green) | Timer State |
 |------------------|-------------------|-------------|
 | ON | OFF | Ready/Idle - waiting for start |
 | OFF | ON | Timer running |
 | OFF | Blinking | Timer finished |
-| Alternating | Alternating | WiFi connection error |
+
+#### Connection Error Indicators
+| Ready LED (Blue) | Status LED (Green) | Connection State |
+|------------------|-------------------|------------------|
+| **Fast Flash** (200ms) | OFF | **WiFi connection failed** - Check WiFi credentials/signal |
+| **Slow Flash** (1000ms) | OFF | **WebSocket connection failed** - Check server connectivity |
+
+**Note**: During connection errors, the Ready LED will override normal timer state indicators. Once connections are restored, normal LED behavior resumes.
 
 ### Button Controls
 
