@@ -13,7 +13,7 @@ services:
       - RELAY_PIN_FALLBACK=529  # Direct GPIO pin number fallback for Pi 4
       - RELAY_ACTIVE_HIGH=1
       - BLINK_HZ=2
-      - BLINK_DURATION_MS=10000  # How long LED stays on (10 seconds)
+      - BLINK_DURATION_MS=3000  # How long LED stays on (3 seconds)
     volumes:
       # Mount data directory for persistent settings
       - ./data:/app/data
