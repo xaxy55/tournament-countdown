@@ -38,6 +38,22 @@ bool timerRunning = false;
 bool timerDone = false;
 unsigned long lastStatusCheck = 0;
 
+// Connection state and LED flashing
+enum ConnectionState {
+  CONN_NORMAL,
+  CONN_WIFI_FAILED,
+  CONN_WEBSOCKET_FAILED
+};
+ConnectionState connectionState = CONN_NORMAL;
+unsigned long lastFlashTime = 0;
+bool flashLedState = false;
+unsigned long lastWebSocketCheck = 0;
+
+// Flash intervals (milliseconds)
+#define WIFI_FAIL_FLASH_INTERVAL 200     // Fast flash for WiFi failure
+#define WEBSOCKET_FAIL_FLASH_INTERVAL 1000  // Slow flash for WebSocket failure
+#define WEBSOCKET_CHECK_INTERVAL 5000    // Check WebSocket connection every 5 seconds
+
 // WebSocket client for real-time updates
 WebSocketsClient webSocket;
 
@@ -96,6 +112,9 @@ void loop() {
   // Check button presses
   checkButtons();
   
+  // Handle connection state and LED flashing
+  handleConnectionState();
+  
   // Continuous display update for smooth countdown when timer is running
   if (timerRunning && localCountdownActive) {
     unsigned long elapsed = millis() - timerStartTime;
@@ -141,18 +160,15 @@ void connectToWiFi() {
     DEBUG_PRINTLN("WiFi connected!");
     DEBUG_PRINT("IP address: ");
     DEBUG_PRINTLN(WiFi.localIP());
+    
+    // WiFi connected successfully - check WebSocket next
+    if (connectionState == CONN_WIFI_FAILED) {
+      connectionState = CONN_NORMAL;  // Reset connection state
+    }
   } else {
     DEBUG_PRINTLN();
     DEBUG_PRINTLN("Failed to connect to WiFi!");
-    // Blink both LEDs to indicate error
-    for (int i = 0; i < 10; i++) {
-      digitalWrite(STATUS_LED_PIN, LED_ACTIVE_HIGH ? HIGH : LOW);
-      digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
-      delay(200);
-      digitalWrite(STATUS_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
-      digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? HIGH : LOW);
-      delay(200);
-    }
+    connectionState = CONN_WIFI_FAILED;  // Set WiFi failure state
   }
 }
 
@@ -262,6 +278,60 @@ void checkTimerStatus() {
   }
   
   http.end();
+}
+
+void handleConnectionState() {
+  // Check WiFi connection status
+  if (WiFi.status() != WL_CONNECTED) {
+    if (connectionState != CONN_WIFI_FAILED) {
+      connectionState = CONN_WIFI_FAILED;
+      DEBUG_PRINTLN("WiFi connection lost - starting fast flash");
+    }
+  } else {
+    // WiFi is connected, check WebSocket periodically
+    if (millis() - lastWebSocketCheck > WEBSOCKET_CHECK_INTERVAL) {
+      lastWebSocketCheck = millis();
+      
+      if (!webSocket.isConnected()) {
+        if (connectionState != CONN_WEBSOCKET_FAILED) {
+          connectionState = CONN_WEBSOCKET_FAILED;
+          DEBUG_PRINTLN("WebSocket connection failed - starting slow flash");
+        }
+      } else {
+        if (connectionState == CONN_WEBSOCKET_FAILED) {
+          connectionState = CONN_NORMAL;
+          DEBUG_PRINTLN("WebSocket reconnected - stopping flash");
+        }
+      }
+    }
+  }
+  
+  // Handle LED flashing based on connection state
+  switch (connectionState) {
+    case CONN_WIFI_FAILED:
+      // Fast flash READY_LED for WiFi failure
+      if (millis() - lastFlashTime > WIFI_FAIL_FLASH_INTERVAL) {
+        flashLedState = !flashLedState;
+        digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? flashLedState : !flashLedState);
+        digitalWrite(STATUS_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);  // Keep status LED off
+        lastFlashTime = millis();
+      }
+      break;
+      
+    case CONN_WEBSOCKET_FAILED:
+      // Slow flash READY_LED for WebSocket failure
+      if (millis() - lastFlashTime > WEBSOCKET_FAIL_FLASH_INTERVAL) {
+        flashLedState = !flashLedState;
+        digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? flashLedState : !flashLedState);
+        digitalWrite(STATUS_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);  // Keep status LED off
+        lastFlashTime = millis();
+      }
+      break;
+      
+    case CONN_NORMAL:
+      // Normal operation - don't interfere with timer LED logic
+      break;
+  }
 }
 
 #if DISPLAY_ENABLED
