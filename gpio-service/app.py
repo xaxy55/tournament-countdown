@@ -6,7 +6,6 @@ Provides HTTP API for controlling GPIO relay on Raspberry Pi
 
 from flask import Flask, request, jsonify
 import threading
-import time
 import os
 import sys
 
@@ -34,6 +33,8 @@ blink_stop_event = threading.Event()
 
 def init_gpio():
     """Initialize GPIO if available and enabled"""
+    global gpio_available
+    
     if not gpio_available or not GPIO_ENABLED:
         print(f"[GPIO] GPIO disabled or not available (available={gpio_available}, enabled={GPIO_ENABLED})")
         return
@@ -50,7 +51,6 @@ def init_gpio():
         print(f"[GPIO] Relay set to OFF (pin state: {'HIGH' if not RELAY_ACTIVE_HIGH else 'LOW'})")
     except Exception as e:
         print(f"[GPIO] Failed to initialize GPIO: {e}")
-        global gpio_available
         gpio_available = False
 
 def set_relay_state(on):
@@ -234,7 +234,7 @@ if __name__ == '__main__':
     init_gpio()
     
     # Start Flask app
-    print(f"[GPIO] Starting GPIO service on port 3001")
+    print("[GPIO] Starting GPIO service on port 3001")
     print(f"[GPIO] Configuration: pin={RELAY_PIN}, active_high={RELAY_ACTIVE_HIGH}, enabled={GPIO_ENABLED}")
     
     app.run(host='0.0.0.0', port=3001, debug=False)
