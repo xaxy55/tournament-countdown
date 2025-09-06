@@ -23,8 +23,6 @@ services:
       - /dev/mem:/dev/mem
       # Mount the entire sysfs with write access for GPIO
       - /sys:/sys:rw
-      # Mount scripts for GPIO setup
-      - ./scripts:/app/scripts:ro
     devices:
       # Grant access to GPIO devices
       - /dev/gpiomem:/dev/gpiomem
