@@ -40,7 +40,7 @@ services:
       - SYS_RAWIO
       - DAC_OVERRIDE
     # Run GPIO setup before starting the application
-    command: sh -c "/app/scripts/gpio-setup.sh && npm start"
+    command: sh -c "raspi-gpio set 17 pn 2>/dev/null || pinctrl set 17 ip,pn 2>/dev/null || true; npm start"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]

@@ -37,8 +37,8 @@ services:
     cap_add:
       - SYS_RAWIO
       - DAC_OVERRIDE
-    # Run GPIO setup before starting the application
-    command: sh -c "/app/scripts/gpio-setup.sh && npm start"
+    # Use default npm start command
+    # GPIO setup should be done on host before starting container
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]
