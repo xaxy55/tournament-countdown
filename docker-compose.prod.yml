@@ -21,11 +21,21 @@ services:
       # Mount GPIO devices for Raspberry Pi GPIO access
       - /dev/gpiomem:/dev/gpiomem
       - /dev/mem:/dev/mem
+      # Mount the entire GPIO sysfs interface
+      - /sys/class/gpio:/sys/class/gpio
+      - /sys/devices:/sys/devices:ro
     devices:
       # Grant access to GPIO devices
       - /dev/gpiomem:/dev/gpiomem
+      - /dev/gpiochip0:/dev/gpiochip0
+      - /dev/gpiochip1:/dev/gpiochip1
+      - /dev/gpiochip2:/dev/gpiochip2
     privileged: true
     user: root  # Run as root for GPIO access
+    # Additional security capabilities for GPIO access
+    cap_add:
+      - SYS_RAWIO
+      - DAC_OVERRIDE
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]
