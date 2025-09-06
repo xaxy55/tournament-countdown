@@ -6,8 +6,8 @@ services:
     container_name: counter-web-app
     environment:
       - NODE_ENV=production
-      - GPIO_ENABLED=false  # Disable GPIO since LED is not GPIO-controlled  # Re-enable GPIO to test different pins
-      - USE_PIGPIO=true  # Use pigpio daemon for reliable GPIO control
+      - GPIO_ENABLED=true  # Disable GPIO since LED is not GPIO-controlled  # Re-enable GPIO to test different pins
+      - USE_PIGPIO=false  # Use pigpio daemon for reliable GPIO control
       - RELAY_PIN=17  # BCM pin 17 (works with pigpio)
       - RELAY_ACTIVE_HIGH=1  # HIGH = LED ON, LOW = LED OFF
       - BLINK_HZ=2
