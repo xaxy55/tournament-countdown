@@ -43,12 +43,18 @@ def init_gpio():
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(RELAY_PIN, GPIO.OUT)
         
-        # Set initial state to OFF
-        initial_state = GPIO.HIGH if RELAY_ACTIVE_HIGH else GPIO.LOW
-        GPIO.output(RELAY_PIN, not initial_state)  # OFF state
+        # Set initial state to OFF using the same logic as set_relay_state
+        if RELAY_ACTIVE_HIGH:
+            # Active high: HIGH=ON, LOW=OFF → Set LOW for OFF
+            GPIO.output(RELAY_PIN, GPIO.LOW)
+            expected_pin_state = "LOW"
+        else:
+            # Active low: LOW=ON, HIGH=OFF → Set HIGH for OFF  
+            GPIO.output(RELAY_PIN, GPIO.HIGH)
+            expected_pin_state = "HIGH"
         
         print(f"[GPIO] Initialized BCM pin {RELAY_PIN}, active_high={RELAY_ACTIVE_HIGH}")
-        print(f"[GPIO] Relay set to OFF (pin state: {'HIGH' if not RELAY_ACTIVE_HIGH else 'LOW'})")
+        print(f"[GPIO] Relay set to OFF (pin state: {expected_pin_state})")
     except Exception as e:
         print(f"[GPIO] Failed to initialize GPIO: {e}")
         gpio_available = False
