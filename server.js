@@ -43,204 +43,161 @@ let countdown = {
 };
 let intervalHandle = null;
 
-// GPIO/Relay blinking controller (Raspberry Pi)
+// HTTP-based GPIO/Relay controller (communicates with Python GPIO service)
 class RelayController {
   constructor(options = {}) {
     this.enabled = !!options.enabled;
-    this.pinNumber = options.pinNumber ?? 17; // BCM numbering
-    this.fallbackPinNumber = options.fallbackPinNumber ?? null; // Direct GPIO pin for Pi 4
-    this.activeHigh = options.activeHigh ?? true; // active-low relays set false
+    this.serviceUrl = options.serviceUrl || process.env.GPIO_SERVICE_URL || 'http://gpio-service:3001';
+    this.pinNumber = options.pinNumber ?? 17; // For reference/logging
+    this.activeHigh = options.activeHigh ?? false; // For reference/logging
     this.hz = Number(options.hz ?? 2); // blink frequency when done
     this.defaultDurationMs = Number(options.defaultDurationMs ?? 10000); // ms to blink after done
-    this.Gpio = null;
-    this.pin = null;
     this.currentOn = false;
-    this.blinkInterval = null;
-    this.stopTimeout = null;
+    this.blinkTimeout = null;
   }
 
-  tryLoadOnOff() {
-    if (!this.enabled) return false;
-    try {
-      const require = createRequire(import.meta.url);
-      const mod = require('onoff');
-      this.Gpio = mod.Gpio || (mod.default && mod.default.Gpio) || null;
-      if (!this.Gpio) throw new Error('onoff.Gpio not found');
-      return true;
-    } catch (e) {
-      console.warn('[GPIO] Enabled but failed to load onoff:', e?.message || e);
-      this.enabled = false;
-      return false;
-    }
-  }
-
-  init() {
-    if (!this.enabled) return;
-    if (!this.tryLoadOnOff()) return;
-    
-    // Try primary pin first
-    console.log(`[GPIO] Attempting to initialize BCM pin ${this.pinNumber} as output`);
-    if (this.tryInitPin(this.pinNumber)) {
-      console.log(`[GPIO] Pin ${this.pinNumber} initialized successfully`);
+  async init() {
+    if (!this.enabled) {
+      console.log('[GPIO] GPIO disabled');
       return;
     }
     
-    // If that fails and we have a fallback pin, try it
-    if (this.fallbackPinNumber !== null && this.fallbackPinNumber !== this.pinNumber) {
-      console.log(`[GPIO] BCM pin ${this.pinNumber} failed, trying fallback GPIO pin ${this.fallbackPinNumber}`);
-      if (this.tryInitPin(this.fallbackPinNumber)) {
-        console.log(`[GPIO] Fallback pin ${this.fallbackPinNumber} initialized successfully`);
-        this.pinNumber = this.fallbackPinNumber; // Update for logging
-        return;
+    try {
+      // Test connection to GPIO service
+      const response = await fetch(`${this.serviceUrl}/health`);
+      if (!response.ok) {
+        throw new Error(`GPIO service health check failed: ${response.status}`);
       }
+      
+      const health = await response.json();
+      console.log(`[GPIO] Connected to GPIO service at ${this.serviceUrl}`);
+      console.log(`[GPIO] Service status:`, health);
+      
+      // Ensure relay starts in OFF state
+      await this.setRelay(false);
+      
+    } catch (e) {
+      console.warn('[GPIO] Failed to connect to GPIO service:', e?.message || e);
+      console.warn('[GPIO] Relay control will be disabled');
+      this.enabled = false;
+    }
+  }
+
+  async makeRequest(endpoint, method = 'POST') {
+    if (!this.enabled) {
+      console.log(`[GPIO] Disabled: would ${endpoint}`);
+      return { success: false, reason: 'disabled' };
+    }
+
+    try {
+      const response = await fetch(`${this.serviceUrl}${endpoint}`, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 5000
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return { success: true, data: result };
+    } catch (e) {
+      console.warn(`[GPIO] Request failed ${endpoint}:`, e?.message || e);
+      return { success: false, error: e?.message || e };
+    }
+  }
+
+  async setRelay(on) {
+    const endpoint = on ? '/relay/on' : '/relay/off';
+    const result = await this.makeRequest(endpoint);
+    
+    if (result.success) {
+      this.currentOn = on;
+      console.log(`[GPIO] Relay ${on ? 'ON' : 'OFF'} via ${endpoint}`);
+    } else {
+      console.warn(`[GPIO] Failed to set relay ${on ? 'ON' : 'OFF'}:`, result.error || result.reason);
     }
     
-    // If all attempts failed
-    console.warn('[GPIO] All pin initialization attempts failed');
-    this.enabled = false;
-  }
-  
-  tryInitPin(pinNumber) {
-    try {
-      this.pin = new this.Gpio(pinNumber, 'out');
-      this.setRelay(false);
-      // best-effort cleanup
-      const cleanup = () => {
-        try { this.dispose(); } catch {}
-      };
-      process.once('SIGINT', cleanup);
-      process.once('SIGTERM', cleanup);
-      process.once('exit', cleanup);
-      console.log(`[GPIO] Relay ready on pin ${pinNumber} (activeHigh=${this.activeHigh})`);
-      return true;
-    } catch (e) {
-      console.warn(`[GPIO] Failed to init pin ${pinNumber}:`, e?.message || e);
-      if (pinNumber === this.pinNumber) {
-        // Only show detailed help for the primary pin failure
-        console.warn('[GPIO] This may be due to:');
-        console.warn('[GPIO]   - Pin already in use (try: pinctrl set 17 ip)');
-        console.warn('[GPIO]   - Running on non-Raspberry Pi hardware');
-        console.warn('[GPIO]   - Insufficient permissions (try running as root)');
-        console.warn('[GPIO]   - Missing /dev/gpiomem access');
-      }
-      return false;
-    }
+    return result.success;
   }
 
-  setRelay(on) {
-    this.currentOn = !!on;
-    console.log(`[GPIO] Setting relay to ${on ? 'HIGH' : 'LOW'}`);
-    if (!this.enabled || !this.pin) return;
-    const level = this.activeHigh ? (on ? 1 : 0) : (on ? 0 : 1);
-    try {
-      this.pin.writeSync(level);
-      console.log(`[GPIO] Successfully wrote level ${level} to pin ${this.pinNumber}`);
-    } catch (e) {
-      console.warn('[GPIO] writeSync failed:', e?.message || e);
-    }
-  }
-
-  startBlinking(durationMs) {
-    if (!this.enabled || !this.pin) return;
+  async startBlinking(durationMs) {
     const dur = Number.isFinite(durationMs) ? Math.max(0, Math.floor(durationMs)) : this.defaultDurationMs;
-    console.log(`[GPIO] Starting LED blink for ${dur}ms`);
+    console.log(`[GPIO] Starting relay blink for ${dur}ms`);
+    
+    // Stop any existing blink
     this.stopBlinking();
     
-    // For LEDs with built-in blinking, just turn on and leave it on
-    this.setRelay(true);
+    // Start the blink via GPIO service
+    const result = await this.makeRequest(`/relay/blink?duration_ms=${dur}`);
     
-    // Set timeout to turn off after duration (if duration > 0)
-    if (dur > 0) {
-      this.stopTimeout = setTimeout(() => {
-        console.log(`[GPIO] Blink duration expired, stopping`);
-        this.stopBlinking();
-      }, dur);
+    if (result.success) {
+      console.log(`[GPIO] Blink started for ${dur}ms via GPIO service`);
+      this.currentOn = true;
+      
+      // Set timeout to update our internal state when blink ends
+      if (dur > 0) {
+        this.blinkTimeout = setTimeout(() => {
+          console.log(`[GPIO] Blink duration expired`);
+          this.currentOn = false;
+        }, dur);
+      }
+    } else {
+      console.warn('[GPIO] Failed to start blink:', result.error || result.reason);
     }
-    // If duration is 0 or negative, LED stays on until manually stopped
   }
 
   stopBlinking() {
-    console.log(`[GPIO] Stopping LED blink`);
-    if (this.blinkInterval) { clearInterval(this.blinkInterval); this.blinkInterval = null; }
-    if (this.stopTimeout) { clearTimeout(this.stopTimeout); this.stopTimeout = null; }
+    if (this.blinkTimeout) {
+      clearTimeout(this.blinkTimeout);
+      this.blinkTimeout = null;
+    }
+    
+    // Turn off relay via GPIO service
     this.setRelay(false);
   }
 
   dispose() {
-    try { this.stopBlinking(); } catch {}
-    if (this.pin) {
-      try { 
-        this.setRelay(false); // Ensure pin is off before disposing
-        this.pin.unexport(); 
-        console.log(`[GPIO] Pin ${this.pinNumber} unexported successfully`);
-      } catch (e) {
-        console.warn(`[GPIO] Failed to unexport pin ${this.pinNumber}:`, e?.message || e);
-      }
-      this.pin = null;
-    }
+    console.log('[GPIO] Disposing relay controller');
+    this.stopBlinking();
+    // No GPIO cleanup needed - GPIO service handles it
   }
 
-  // Force cleanup by writing to sysfs directly
-  static forceCleanupPin(pinNumber) {
+  // Force cleanup by sending OFF command to GPIO service
+  static async forceCleanup() {
     try {
-      const fs = require('fs');
-      fs.writeFileSync('/sys/class/gpio/unexport', String(pinNumber));
-      console.log(`[GPIO] Force unexported pin ${pinNumber} via sysfs`);
+      const serviceUrl = process.env.GPIO_SERVICE_URL || 'http://gpio-service:3001';
+      const response = await fetch(`${serviceUrl}/relay/off`, { method: 'POST' });
+      if (response.ok) {
+        console.log('[GPIO] Force cleanup: relay set to OFF via GPIO service');
+      } else {
+        console.warn('[GPIO] Force cleanup failed:', response.status);
+      }
     } catch (e) {
-      console.warn(`[GPIO] Failed to force cleanup pin ${pinNumber}:`, e?.message || e);
+      console.warn('[GPIO] Force cleanup failed:', e?.message || e);
     }
   }
 }
 
-// Configure relay from environment - async function for pigpio loading
+// Configure relay from environment - async function 
 const gpioEnabled = /^1|true$/i.test(String(process.env.GPIO_ENABLED || ''));
 async function initializeRelay() {
-  let usePigpio = /^1|true$/i.test(String(process.env.USE_PIGPIO || 'true')); // Default to pigpio
-
-  let relay;
-
-  if (gpioEnabled && usePigpio) {
-    // Try to use pigpio first (more reliable)
-    try {
-      const { PigpioRelayController } = await import('./pigpio-relay-controller.js');
-      relay = new PigpioRelayController({
-        enabled: gpioEnabled,
-        pinNumber: Number(process.env.RELAY_PIN ?? 17), // BCM numbering works correctly with pigpio
-        activeHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')),
-        hz: Number(process.env.BLINK_HZ ?? 2),
-        defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
-      });
-      console.log('[GPIO] Using pigpio controller');
-    } catch (e) {
-      console.warn('[GPIO] Pigpio not available, falling back to onoff');
-      usePigpio = false;
-    }
-  }
-
-  if (gpioEnabled && !usePigpio) {
-    // Fallback to current onoff approach with GPIO pin fallback
-    let pinNumber = Number(process.env.RELAY_PIN ?? 17); // BCM numbering
-    const fallbackPin = Number(process.env.RELAY_PIN_FALLBACK ?? 529); // Direct GPIO pin number
-    
-    relay = new RelayController({
-      enabled: gpioEnabled,
-      pinNumber: pinNumber,
-      fallbackPinNumber: fallbackPin,
-      activeHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')),
-      hz: Number(process.env.BLINK_HZ ?? 2),
-      defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
-    });
-    console.log('[GPIO] Using onoff controller');
-  } else if (!gpioEnabled) {
-    // GPIO disabled
-    relay = new RelayController({ enabled: false });
-    console.log('[GPIO] GPIO disabled');
-  }
+  const relay = new RelayController({
+    enabled: gpioEnabled,
+    serviceUrl: process.env.GPIO_SERVICE_URL || 'http://gpio-service:3001',
+    pinNumber: Number(process.env.RELAY_PIN ?? 17), // For reference/logging
+    activeHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')), // For reference/logging
+    hz: Number(process.env.BLINK_HZ ?? 2),
+    defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
+  });
 
   await relay.init();
   return relay;
 }
-
+    
 // Initialize relay controller
 const relay = await initializeRelay();
 
