@@ -5,6 +5,8 @@ services:
   gpio-service:
     build: ./gpio-service
     container_name: gpio-service
+    ports:
+      - "3001:3001"  # Expose GPIO service for direct access
     environment:
       - GPIO_ENABLED=true
       - RELAY_PIN=17  # BCM pin 17
@@ -35,6 +37,8 @@ services:
   counter-web:
     image: ghcr.io/xaxy55/tournament-countdown:latest
     container_name: counter-web-app
+    ports:
+      - "3000:3000"  # Expose main app port
     environment:
       - NODE_ENV=production
       - GPIO_ENABLED=true
