@@ -56,8 +56,6 @@ class RelayController {
 
   async init() {
     console.log('[GPIO] GPIO functionality disabled');
-    console.log('[GPIO] To enable relay control, consider using Node-RED with pi-gpio node');
-    console.log('[GPIO] Reference: https://flows.nodered.org/node/node-red-node-pi-gpio');
   }
 
   async setRelay(on) {
@@ -102,14 +100,13 @@ class RelayController {
   }
 }
 
-// Configure relay from environment - async function 
-const gpioEnabled = /^1|true$/i.test(String(process.env.GPIO_ENABLED || ''));
+// Configure relay from environment - simplified 
+const gpioEnabled = false; // Disabled - GPIO removed
 async function initializeRelay() {
   const relay = new RelayController({
-    enabled: gpioEnabled,
-    serviceUrl: process.env.GPIO_SERVICE_URL || 'http://gpio-service:3001',
-    pinNumber: Number(process.env.RELAY_PIN ?? 17), // For reference/logging
-    activeHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')), // For reference/logging
+    enabled: false, // Always disabled
+    pinNumber: Number(process.env.RELAY_PIN ?? 17),
+    activeHigh: true,
     defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 3000)
   });
 
@@ -148,9 +145,9 @@ const settings = {
     : 45,
   presets: parsePresetsEnv(process.env.PRESETS),
   gpio: {
-    enabled: gpioEnabled,
+    enabled: false, // Always disabled
     relayPin: Number(process.env.RELAY_PIN ?? 17),
-    relayActiveHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')),
+    relayActiveHigh: true,
     blinkDurationMs: Number(process.env.BLINK_DURATION_MS ?? 3000)
   },
   theme: {
