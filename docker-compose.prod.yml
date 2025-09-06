@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   counter-web:
-    image: ghcr.io/xaxy55/tournament-countdown:latest
+    image: tournament-countdown_counter-web:latest  # Use locally built image with updated code
     container_name: counter-web-app
     environment:
       - NODE_ENV=production
