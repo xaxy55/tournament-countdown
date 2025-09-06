@@ -77,10 +77,32 @@ class RelayController {
   init() {
     if (!this.enabled) return;
     if (!this.tryLoadOnOff()) return;
-    try {
-      console.log(`[GPIO] Attempting to initialize BCM pin ${this.pinNumber} as output`);
-      this.pin = new this.Gpio(this.pinNumber, 'out');
+    
+    // Try primary pin first
+    console.log(`[GPIO] Attempting to initialize BCM pin ${this.pinNumber} as output`);
+    if (this.tryInitPin(this.pinNumber)) {
       console.log(`[GPIO] Pin ${this.pinNumber} initialized successfully`);
+      return;
+    }
+    
+    // If that fails and we have a fallback pin, try it
+    if (this.fallbackPinNumber !== null && this.fallbackPinNumber !== this.pinNumber) {
+      console.log(`[GPIO] BCM pin ${this.pinNumber} failed, trying fallback GPIO pin ${this.fallbackPinNumber}`);
+      if (this.tryInitPin(this.fallbackPinNumber)) {
+        console.log(`[GPIO] Fallback pin ${this.fallbackPinNumber} initialized successfully`);
+        this.pinNumber = this.fallbackPinNumber; // Update for logging
+        return;
+      }
+    }
+    
+    // If all attempts failed
+    console.warn('[GPIO] All pin initialization attempts failed');
+    this.enabled = false;
+  }
+  
+  tryInitPin(pinNumber) {
+    try {
+      this.pin = new this.Gpio(pinNumber, 'out');
       this.setRelay(false);
       // best-effort cleanup
       const cleanup = () => {
@@ -89,15 +111,19 @@ class RelayController {
       process.once('SIGINT', cleanup);
       process.once('SIGTERM', cleanup);
       process.once('exit', cleanup);
-      console.log(`[GPIO] Relay ready on BCM pin ${this.pinNumber} (activeHigh=${this.activeHigh})`);
+      console.log(`[GPIO] Relay ready on pin ${pinNumber} (activeHigh=${this.activeHigh})`);
+      return true;
     } catch (e) {
-      console.warn('[GPIO] Failed to init relay pin:', e?.message || e);
-      console.warn('[GPIO] This may be due to:');
-      console.warn('[GPIO]   - Pin already in use (try: pinctrl set 17 ip)');
-      console.warn('[GPIO]   - Running on non-Raspberry Pi hardware');
-      console.warn('[GPIO]   - Insufficient permissions (try running as root)');
-      console.warn('[GPIO]   - Missing /dev/gpiomem access');
-      this.enabled = false;
+      console.warn(`[GPIO] Failed to init pin ${pinNumber}:`, e?.message || e);
+      if (pinNumber === this.pinNumber) {
+        // Only show detailed help for the primary pin failure
+        console.warn('[GPIO] This may be due to:');
+        console.warn('[GPIO]   - Pin already in use (try: pinctrl set 17 ip)');
+        console.warn('[GPIO]   - Running on non-Raspberry Pi hardware');
+        console.warn('[GPIO]   - Insufficient permissions (try running as root)');
+        console.warn('[GPIO]   - Missing /dev/gpiomem access');
+      }
+      return false;
     }
   }
 
