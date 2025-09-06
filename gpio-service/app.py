@@ -61,21 +61,31 @@ def init_gpio():
 
 def set_relay_state(on):
     """Set relay state: True=ON, False=OFF"""
+    print(f"[GPIO] set_relay_state called with on={on}")
+    
     if not gpio_available:
         print(f"[GPIO] Mock: Relay {'ON' if on else 'OFF'}")
         return True
     
     try:
+        print(f"[GPIO] RELAY_ACTIVE_HIGH={RELAY_ACTIVE_HIGH}, RELAY_PIN={RELAY_PIN}")
+        
         if RELAY_ACTIVE_HIGH:
             # Active high: HIGH=ON, LOW=OFF
-            GPIO.output(RELAY_PIN, GPIO.HIGH if on else GPIO.LOW)
+            pin_value = GPIO.HIGH if on else GPIO.LOW
+            print(f"[GPIO] Setting pin {RELAY_PIN} to {'HIGH' if pin_value else 'LOW'}")
+            GPIO.output(RELAY_PIN, pin_value)
         else:
             # Active low: LOW=ON, HIGH=OFF
-            GPIO.output(RELAY_PIN, GPIO.LOW if on else GPIO.HIGH)
+            pin_value = GPIO.LOW if on else GPIO.HIGH
+            print(f"[GPIO] Setting pin {RELAY_PIN} to {'LOW' if pin_value else 'HIGH'}")
+            GPIO.output(RELAY_PIN, pin_value)
         
+        # Verify the pin state
+        actual_pin_state = GPIO.input(RELAY_PIN)
         state_str = 'ON' if on else 'OFF'
-        pin_state = 'HIGH' if GPIO.input(RELAY_PIN) else 'LOW'
-        print(f"[GPIO] Relay {state_str} (pin {RELAY_PIN} = {pin_state})")
+        pin_state_str = 'HIGH' if actual_pin_state else 'LOW'
+        print(f"[GPIO] Relay {state_str} (pin {RELAY_PIN} = {pin_state_str})")
         return True
     except Exception as e:
         print(f"[GPIO] Failed to set relay state: {e}")
