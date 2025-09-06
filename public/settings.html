@@ -21,23 +21,31 @@
       </fieldset>
 
       <fieldset>
-        <legend>GPIO / Relay</legend>
+        <legend>GPIO / Relay (Python Service)</legend>
+        <div class="info-box">
+          <p><strong>ℹ️ GPIO Service:</strong> Relay control is handled by a dedicated Python service for reliable Raspberry Pi GPIO access.</p>
+          <p><strong>Current Setup:</strong> Active LOW relay (GPIO LOW = Relay ON, LED ON)</p>
+        </div>
         <label class="inline"><input type="checkbox" id="gpioEnabled"> Enable GPIO</label>
         <label>Relay pin (BCM)
           <input type="number" id="relayPin" min="0" step="1">
+          <small>BCM pin number (e.g., 17 = Physical pin 11)</small>
         </label>
         <label>Relay active high
           <select id="relayActiveHigh">
-            <option value="true">Active HIGH</option>
-            <option value="false">Active LOW</option>
+            <option value="true">Active HIGH (GPIO HIGH = ON)</option>
+            <option value="false">Active LOW (GPIO LOW = ON)</option>
           </select>
-        </label>
-        <label>Blink Hz
-          <input type="number" id="blinkHz" min="0" step="0.1">
+          <small>Most relay modules are Active LOW</small>
         </label>
         <label>Blink duration (ms)
           <input type="number" id="blinkDurationMs" min="0" step="100">
+          <small>How long relay stays ON at countdown end</small>
         </label>
+        <div id="gpioServiceStatus" class="service-status">
+          <span class="status-indicator"></span>
+          <span class="status-text">Checking GPIO service...</span>
+        </div>
       </fieldset>
 
       <fieldset>
@@ -101,8 +109,7 @@
       document.getElementById('gpioEnabled').checked = !!s.gpio?.enabled;
       document.getElementById('relayPin').value = s.gpio?.relayPin ?? 17;
       document.getElementById('relayActiveHigh').value = String(!!s.gpio?.relayActiveHigh);
-      document.getElementById('blinkHz').value = s.gpio?.blinkHz ?? 2;
-      document.getElementById('blinkDurationMs').value = s.gpio?.blinkDurationMs ?? 10000;
+      document.getElementById('blinkDurationMs').value = s.gpio?.blinkDurationMs ?? 3000;
   // theme
   const t = s.theme || {};
   document.getElementById('themeEnabled').checked = !!t.enabled;
@@ -129,6 +136,28 @@
       } catch {}
     }
 
+    async function checkGpioServiceStatus() {
+      const statusElement = document.getElementById('gpioServiceStatus');
+      const indicator = statusElement.querySelector('.status-indicator');
+      const text = statusElement.querySelector('.status-text');
+      
+      try {
+        // Try to reach the GPIO service health endpoint via Node.js proxy
+        const response = await fetch('/api/gpio/health');
+        
+        if (response.ok) {
+          const health = await response.json();
+          statusElement.className = 'service-status online';
+          text.textContent = `GPIO Service: Online (${health.gpio_available ? 'GPIO Ready' : 'Mock Mode'})`;
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (e) {
+        statusElement.className = 'service-status offline';
+        text.textContent = 'GPIO Service: Offline or unreachable';
+      }
+    }
+
     document.getElementById('settingsForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const payload = {
@@ -138,8 +167,7 @@
           enabled: document.getElementById('gpioEnabled').checked,
           relayPin: Number(document.getElementById('relayPin').value || 17),
           relayActiveHigh: document.getElementById('relayActiveHigh').value === 'true',
-          blinkHz: Number(document.getElementById('blinkHz').value || 2),
-          blinkDurationMs: Number(document.getElementById('blinkDurationMs').value || 10000),
+          blinkDurationMs: Number(document.getElementById('blinkDurationMs').value || 3000),
         },
         theme: {
           enabled: document.getElementById('themeEnabled').checked,
@@ -178,6 +206,10 @@
     });
 
     loadSettings();
+    checkGpioServiceStatus();
+    
+    // Check GPIO service status every 30 seconds
+    setInterval(checkGpioServiceStatus, 30000);
   </script>
   <script>
     async function loadSoundsIntoPicker(){

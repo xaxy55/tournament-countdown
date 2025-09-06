@@ -138,6 +138,57 @@ body.is-fullscreen .display {
 	color: #93c5fd;
 	padding: 0 6px;
 }
+
+/* Info box for help text */
+.info-box {
+	background: rgba(59, 130, 246, 0.1);
+	border: 1px solid rgba(59, 130, 246, 0.3);
+	border-radius: 8px;
+	padding: 12px;
+	margin-bottom: 16px;
+	font-size: 14px;
+}
+.info-box p {
+	margin: 0 0 8px 0;
+	color: #cbd5e1;
+}
+.info-box p:last-child {
+	margin-bottom: 0;
+}
+
+/* Service status indicator */
+.service-status {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 12px;
+	padding: 8px 12px;
+	background: rgba(15, 23, 42, 0.7);
+	border-radius: 6px;
+	font-size: 14px;
+}
+.status-indicator {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--status-idle);
+}
+.service-status.online .status-indicator {
+	background: var(--status-running);
+}
+.service-status.offline .status-indicator {
+	background: var(--status-warning);
+}
+.status-text {
+	color: #cbd5e1;
+}
+
+/* Small help text */
+small {
+	font-size: 12px;
+	color: #94a3b8;
+	font-style: italic;
+}
 .settings-form label {
 	display: grid;
 	gap: 8px;

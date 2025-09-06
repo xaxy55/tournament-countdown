@@ -50,8 +50,7 @@ class RelayController {
     this.serviceUrl = options.serviceUrl || process.env.GPIO_SERVICE_URL || 'http://gpio-service:3001';
     this.pinNumber = options.pinNumber ?? 17; // For reference/logging
     this.activeHigh = options.activeHigh ?? false; // For reference/logging
-    this.hz = Number(options.hz ?? 2); // blink frequency when done
-    this.defaultDurationMs = Number(options.defaultDurationMs ?? 10000); // ms to blink after done
+    this.defaultDurationMs = Number(options.defaultDurationMs ?? 3000); // ms to blink after done
     this.currentOn = false;
     this.blinkTimeout = null;
   }
@@ -190,8 +189,7 @@ async function initializeRelay() {
     serviceUrl: process.env.GPIO_SERVICE_URL || 'http://gpio-service:3001',
     pinNumber: Number(process.env.RELAY_PIN ?? 17), // For reference/logging
     activeHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')), // For reference/logging
-    hz: Number(process.env.BLINK_HZ ?? 2),
-    defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
+    defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 3000)
   });
 
   await relay.init();
@@ -232,8 +230,7 @@ const settings = {
     enabled: gpioEnabled,
     relayPin: Number(process.env.RELAY_PIN ?? 17),
     relayActiveHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')),
-    blinkHz: Number(process.env.BLINK_HZ ?? 2),
-    blinkDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
+    blinkDurationMs: Number(process.env.BLINK_DURATION_MS ?? 3000)
   },
   theme: {
     enabled: false,
@@ -316,6 +313,27 @@ app.get('/api/settings', (_req, res) => {
   res.json({ settings });
 });
 
+// GPIO service health proxy
+app.get('/api/gpio/health', async (_req, res) => {
+  try {
+    const serviceUrl = process.env.GPIO_SERVICE_URL || 'http://gpio-service:3001';
+    const response = await fetch(`${serviceUrl}/health`);
+    
+    if (!response.ok) {
+      throw new Error(`GPIO service returned ${response.status}`);
+    }
+    
+    const health = await response.json();
+    res.json(health);
+  } catch (e) {
+    res.status(503).json({ 
+      status: 'error', 
+      error: e?.message || 'GPIO service unavailable',
+      gpio_available: false 
+    });
+  }
+});
+
 app.post('/api/settings', (req, res) => {
   const body = req.body || {};
   try {
@@ -336,9 +354,6 @@ app.post('/api/settings', (req, res) => {
         relayActiveHigh: typeof body.gpio?.relayActiveHigh === 'boolean'
           ? body.gpio.relayActiveHigh
           : settings.gpio.relayActiveHigh,
-        blinkHz: Number.isFinite(body.gpio?.blinkHz)
-          ? Math.max(0, Number(body.gpio.blinkHz))
-          : settings.gpio.blinkHz,
         blinkDurationMs: Number.isFinite(body.gpio?.blinkDurationMs)
           ? Math.max(0, Math.floor(Number(body.gpio.blinkDurationMs)))
           : settings.gpio.blinkDurationMs
@@ -365,7 +380,6 @@ app.post('/api/settings', (req, res) => {
     try {
       const needsReinit = relay.pinNumber !== next.gpio.relayPin || relay.activeHigh !== next.gpio.relayActiveHigh;
       relay.enabled = !!next.gpio.enabled;
-      relay.hz = Number(next.gpio.blinkHz);
       relay.defaultDurationMs = Number(next.gpio.blinkDurationMs);
       if (needsReinit) {
         try { relay.dispose(); } catch {}
