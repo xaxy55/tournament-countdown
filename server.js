@@ -48,6 +48,7 @@ class RelayController {
   constructor(options = {}) {
     this.enabled = !!options.enabled;
     this.pinNumber = options.pinNumber ?? 17; // BCM numbering
+    this.fallbackPinNumber = options.fallbackPinNumber ?? null; // Direct GPIO pin for Pi 4
     this.activeHigh = options.activeHigh ?? true; // active-low relays set false
     this.hz = Number(options.hz ?? 2); // blink frequency when done
     this.defaultDurationMs = Number(options.defaultDurationMs ?? 10000); // ms to blink after done
@@ -191,10 +192,14 @@ async function initializeRelay() {
   }
 
   if (gpioEnabled && !usePigpio) {
-    // Fallback to current onoff approach
+    // Fallback to current onoff approach with GPIO pin fallback
+    let pinNumber = Number(process.env.RELAY_PIN ?? 17); // BCM numbering
+    const fallbackPin = Number(process.env.RELAY_PIN_FALLBACK ?? 529); // Direct GPIO pin number
+    
     relay = new RelayController({
       enabled: gpioEnabled,
-      pinNumber: Number(process.env.RELAY_PIN ?? 17), // BCM numbering
+      pinNumber: pinNumber,
+      fallbackPinNumber: fallbackPin,
       activeHigh: !/^0|false$/i.test(String(process.env.RELAY_ACTIVE_HIGH ?? '1')),
       hz: Number(process.env.BLINK_HZ ?? 2),
       defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 10000)
