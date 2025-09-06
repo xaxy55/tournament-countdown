@@ -23,9 +23,8 @@ services:
       # Mount GPIO devices for Raspberry Pi GPIO access
       - /dev/gpiomem:/dev/gpiomem
       - /dev/mem:/dev/mem
-      # Mount the entire GPIO sysfs interface with write access
-      - /sys/class/gpio:/sys/class/gpio:rw
-      - /sys/devices:/sys/devices:ro
+      # Mount the entire sysfs with write access for GPIO
+      - /sys:/sys:rw
     devices:
       # Grant access to GPIO devices
       - /dev/gpiomem:/dev/gpiomem
