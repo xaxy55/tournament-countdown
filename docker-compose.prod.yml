@@ -23,6 +23,8 @@ services:
       - /dev/mem:/dev/mem
       # Mount the entire sysfs with write access for GPIO
       - /sys:/sys:rw
+      # Mount scripts for GPIO setup
+      - ./scripts:/app/scripts:ro
     devices:
       # Grant access to GPIO devices
       - /dev/gpiomem:/dev/gpiomem
@@ -35,6 +37,8 @@ services:
     cap_add:
       - SYS_RAWIO
       - DAC_OVERRIDE
+    # Run GPIO setup before starting the application
+    command: sh -c "/app/scripts/gpio-setup.sh && npm start"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]
