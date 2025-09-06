@@ -408,7 +408,8 @@ io.on('connection', (socket) => {
     countdown.durationMs = d;
     countdown.endTime = Date.now() + d;
     countdown.running = d > 0;
-  try { relay.stopBlinking(); } catch {}
+    console.log(`[SOCKET] Starting countdown for ${d}ms, stopping relay`);
+    try { relay.stopBlinking(); } catch {}
     const state = getState();
     io.emit('start', state);
     startTicker();
