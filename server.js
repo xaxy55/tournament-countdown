@@ -193,8 +193,8 @@ class RelayController {
 }
 
 // Configure relay from environment - async function for pigpio loading
+const gpioEnabled = /^1|true$/i.test(String(process.env.GPIO_ENABLED || ''));
 async function initializeRelay() {
-  const gpioEnabled = /^1|true$/i.test(String(process.env.GPIO_ENABLED || ''));
   let usePigpio = /^1|true$/i.test(String(process.env.USE_PIGPIO || 'true')); // Default to pigpio
 
   let relay;
