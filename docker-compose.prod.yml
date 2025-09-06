@@ -4,8 +4,6 @@ services:
   counter-web:
     image: ghcr.io/xaxy55/tournament-countdown:latest
     container_name: counter-web-app
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=production
       - GPIO_ENABLED=true
@@ -48,12 +46,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    networks:
-      - counter-network
-
-networks:
-  counter-network:
-    driver: bridge
 
 # Optional: Add a volume for persistent data if you prefer named volumes
 # volumes:
