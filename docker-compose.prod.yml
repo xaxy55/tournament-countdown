@@ -9,7 +9,7 @@ services:
       - GPIO_ENABLED=true
       - USE_PIGPIO=false  # Use direct GPIO access (working solution)
       - RELAY_PIN=529  # Direct GPIO pin number that works on Pi 4
-      - RELAY_ACTIVE_HIGH=1
+      - RELAY_ACTIVE_HIGH=0  # Invert logic: LOW=LED blinks, HIGH=LED off
       - BLINK_HZ=2
       - BLINK_DURATION_MS=3000  # How long LED stays on (3 seconds)
     volumes:
