@@ -46,106 +46,40 @@ let intervalHandle = null;
 // HTTP-based GPIO/Relay controller (communicates with Python GPIO service)
 class RelayController {
   constructor(options = {}) {
-    this.enabled = !!options.enabled;
-    this.serviceUrl = options.serviceUrl || process.env.GPIO_SERVICE_URL || 'http://gpio-service:3001';
-    this.pinNumber = options.pinNumber ?? 17; // For reference/logging
-    this.activeHigh = options.activeHigh ?? false; // For reference/logging
-    this.defaultDurationMs = Number(options.defaultDurationMs ?? 3000); // ms to blink after done
+    this.enabled = false; // Disabled - GPIO removed
+    this.pinNumber = options.pinNumber ?? 17;
+    this.activeHigh = options.activeHigh ?? false;
+    this.defaultDurationMs = Number(options.defaultDurationMs ?? 3000);
     this.currentOn = false;
     this.blinkTimeout = null;
   }
 
   async init() {
-    if (!this.enabled) {
-      console.log('[GPIO] GPIO disabled');
-      return;
-    }
-    
-    try {
-      // Test connection to GPIO service
-      const response = await fetch(`${this.serviceUrl}/health`);
-      if (!response.ok) {
-        throw new Error(`GPIO service health check failed: ${response.status}`);
-      }
-      
-      const health = await response.json();
-      console.log(`[GPIO] Connected to GPIO service at ${this.serviceUrl}`);
-      console.log(`[GPIO] Service status:`, health);
-      
-      // Ensure relay starts in OFF state
-      await this.setRelay(false);
-      
-    } catch (e) {
-      console.warn('[GPIO] Failed to connect to GPIO service:', e?.message || e);
-      console.warn('[GPIO] Relay control will be disabled');
-      this.enabled = false;
-    }
-  }
-
-  async makeRequest(endpoint, method = 'POST') {
-    if (!this.enabled) {
-      console.log(`[GPIO] Disabled: would ${endpoint}`);
-      return { success: false, reason: 'disabled' };
-    }
-
-    try {
-      const response = await fetch(`${this.serviceUrl}${endpoint}`, {
-        method,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        timeout: 5000
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      return { success: true, data: result };
-    } catch (e) {
-      console.warn(`[GPIO] Request failed ${endpoint}:`, e?.message || e);
-      return { success: false, error: e?.message || e };
-    }
+    console.log('[GPIO] GPIO functionality disabled');
+    console.log('[GPIO] To enable relay control, consider using Node-RED with pi-gpio node');
+    console.log('[GPIO] Reference: https://flows.nodered.org/node/node-red-node-pi-gpio');
   }
 
   async setRelay(on) {
-    const endpoint = on ? '/relay/on' : '/relay/off';
-    const result = await this.makeRequest(endpoint);
-    
-    if (result.success) {
-      this.currentOn = on;
-      console.log(`[GPIO] Relay ${on ? 'ON' : 'OFF'} via ${endpoint}`);
-    } else {
-      console.warn(`[GPIO] Failed to set relay ${on ? 'ON' : 'OFF'}:`, result.error || result.reason);
-    }
-    
-    return result.success;
+    console.log(`[GPIO] Mock: Would set relay ${on ? 'ON' : 'OFF'}`);
+    this.currentOn = on;
+    return true;
   }
 
   async startBlinking(durationMs) {
     const dur = Number.isFinite(durationMs) ? Math.max(0, Math.floor(durationMs)) : this.defaultDurationMs;
-    console.log(`[GPIO] Starting relay blink for ${dur}ms`);
+    console.log(`[GPIO] Mock: Would blink relay for ${dur}ms`);
     
     // Stop any existing blink
     this.stopBlinking();
     
-    // Start the blink via GPIO service
-    const result = await this.makeRequest(`/relay/blink?duration_ms=${dur}`);
-    
-    if (result.success) {
-      console.log(`[GPIO] Blink started for ${dur}ms via GPIO service`);
-      this.currentOn = true;
-      
-      // Set timeout to update our internal state when blink ends
-      if (dur > 0) {
-        this.blinkTimeout = setTimeout(() => {
-          console.log(`[GPIO] Blink duration expired`);
-          this.currentOn = false;
-        }, dur);
-      }
-    } else {
-      console.warn('[GPIO] Failed to start blink:', result.error || result.reason);
+    // Simulate blink timing
+    this.currentOn = true;
+    if (dur > 0) {
+      this.blinkTimeout = setTimeout(() => {
+        console.log(`[GPIO] Mock: Blink duration expired`);
+        this.currentOn = false;
+      }, dur);
     }
   }
 
@@ -154,30 +88,17 @@ class RelayController {
       clearTimeout(this.blinkTimeout);
       this.blinkTimeout = null;
     }
-    
-    // Turn off relay via GPIO service
-    this.setRelay(false);
+    console.log('[GPIO] Mock: Stopping blink, setting relay OFF');
+    this.currentOn = false;
   }
 
   dispose() {
     console.log('[GPIO] Disposing relay controller');
     this.stopBlinking();
-    // No GPIO cleanup needed - GPIO service handles it
   }
 
-  // Force cleanup by sending OFF command to GPIO service
   static async forceCleanup() {
-    try {
-      const serviceUrl = process.env.GPIO_SERVICE_URL || 'http://gpio-service:3001';
-      const response = await fetch(`${serviceUrl}/relay/off`, { method: 'POST' });
-      if (response.ok) {
-        console.log('[GPIO] Force cleanup: relay set to OFF via GPIO service');
-      } else {
-        console.warn('[GPIO] Force cleanup failed:', response.status);
-      }
-    } catch (e) {
-      console.warn('[GPIO] Force cleanup failed:', e?.message || e);
-    }
+    console.log('[GPIO] Mock: Force cleanup - relay set to OFF');
   }
 }
 
@@ -313,25 +234,14 @@ app.get('/api/settings', (_req, res) => {
   res.json({ settings });
 });
 
-// GPIO service health proxy
+// GPIO health endpoint - simplified (no GPIO service)
 app.get('/api/gpio/health', async (_req, res) => {
-  try {
-    const serviceUrl = process.env.GPIO_SERVICE_URL || 'http://gpio-service:3001';
-    const response = await fetch(`${serviceUrl}/health`);
-    
-    if (!response.ok) {
-      throw new Error(`GPIO service returned ${response.status}`);
-    }
-    
-    const health = await response.json();
-    res.json(health);
-  } catch (e) {
-    res.status(503).json({ 
-      status: 'error', 
-      error: e?.message || 'GPIO service unavailable',
-      gpio_available: false 
-    });
-  }
+  res.json({ 
+    status: 'disabled', 
+    message: 'GPIO functionality removed - consider Node-RED with pi-gpio',
+    reference: 'https://flows.nodered.org/node/node-red-node-pi-gpio',
+    gpio_available: false 
+  });
 });
 
 app.post('/api/settings', (req, res) => {

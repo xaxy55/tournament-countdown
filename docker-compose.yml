@@ -10,51 +10,22 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - GPIO_ENABLED=true
-      - USE_PIGPIO=true  # Use pigpio for better GPIO control
-      - RELAY_PIN=17  # BCM pin 17 (pigpio handles numbering correctly)
-      - RELAY_ACTIVE_HIGH=1
-      - BLINK_HZ=2
-      - BLINK_DURATION_MS=10000  # How long LED stays on (10 seconds)
+      - GPIO_ENABLED=false  # GPIO functionality removed
     volumes:
       # Mount data directory for persistent settings
       - ./data:/app/data
       # Mount sounds directory if you want to customize sounds
       - ./public/sounds:/app/public/sounds
-      # Mount GPIO devices for Raspberry Pi GPIO access
-      - /dev/gpiomem:/dev/gpiomem
-      - /dev/mem:/dev/mem
-      # Mount the entire sysfs with write access for GPIO
-      - /sys:/sys:rw
-    devices:
-      # Grant access to GPIO devices
-      - /dev/gpiomem:/dev/gpiomem
-      - /dev/gpiochip0:/dev/gpiochip0
-      - /dev/gpiochip1:/dev/gpiochip1
-      - /dev/gpiochip2:/dev/gpiochip2
-    privileged: true
-    user: root  # Run as root for GPIO access
-    # Additional security capabilities for GPIO access
-    cap_add:
-      - SYS_RAWIO
-      - DAC_OVERRIDE
-    # Use default npm start command  
-    # GPIO setup should be done on host before starting container
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 20s
     networks:
       - counter-network
 
 networks:
   counter-network:
     driver: bridge
-
-# Optional: Add a volume for persistent data if you prefer named volumes
-# volumes:
-#   counter-data:
-#     driver: local
