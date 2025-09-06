@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  counter-web:
+    image: tournament-countdown-local  # Use locally built image
+    container_name: counter-web-app-local
+    environment:
+      - NODE_ENV=production
+      - GPIO_ENABLED=true
+      - USE_PIGPIO=false  # Use direct GPIO access (working solution)
+      - RELAY_PIN=529  # Direct GPIO pin number that works on Pi 4
+      - RELAY_ACTIVE_HIGH=1
+      - BLINK_HZ=2
+      - BLINK_DURATION_MS=3000  # How long LED stays on (3 seconds)
+    volumes:
+      # Mount data directory for persistent settings
+      - ./data:/app/data
+      # Mount sounds directory if you want to customize sounds
+      - ./public/sounds:/app/public/sounds
+      # Mount GPIO devices for Raspberry Pi GPIO access
+      - /dev/gpiomem:/dev/gpiomem
+      - /dev/mem:/dev/mem
+      # Mount the entire sysfs with write access for GPIO
+      - /sys:/sys:rw
+    devices:
+      # Grant access to GPIO devices
+      - /dev/gpiomem:/dev/gpiomem
+      - /dev/gpiochip0:/dev/gpiochip0
+      - /dev/gpiochip1:/dev/gpiochip1
+      - /dev/gpiochip2:/dev/gpiochip2
+    privileged: true
+    user: root  # Run as root for GPIO access
+    network_mode: host  # Allow access to host services like pigpiod
+    # Additional security capabilities for GPIO access
+    cap_add:
+      - SYS_RAWIO
+      - DAC_OVERRIDE
+    # Use default npm start command
+    # GPIO setup should be done on host before starting container
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Optional: Add a volume for persistent data if you prefer named volumes
+# volumes:
+#   counter-data:
+#     driver: local
