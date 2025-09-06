@@ -1,10 +1,11 @@
 /*
- * Tournament Countdown Controller for ESP32
+ * Tournament Countdown Controller for ESP8266
  * 
  * Hardware:
  * - 2 push buttons (start/reset)
  * - 2 LEDs (status indicators)
- * - ESP32 development board
+ * - ESP8266 development board (NodeMCU/Wemos D1 Mini)
+ * - Optional: 7-segment display (TM1637) - can be disabled via config.h
  * 
  * This controller connects to the tournament countdown server via WiFi
  * and provides physical button control for starting and resetting the timer.
@@ -13,13 +14,17 @@
  * 1. Update config.h with your WiFi credentials and server details
  * 2. Verify pin assignments match your hardware setup
  * 3. Install required libraries: ArduinoJson and WebSockets
+ * 4. If using display: Install TM1637Display library
+ * 5. Set DISPLAY_ENABLED in config.h to true/false based on your hardware
  */
 
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
 #include <WebSocketsClient.h>
+#if DISPLAY_ENABLED
 #include <TM1637Display.h>
+#endif
 #include "config.h"
 
 // Note: ESP8266 version with 7-segment display support
@@ -36,8 +41,10 @@ unsigned long lastStatusCheck = 0;
 // WebSocket client for real-time updates
 WebSocketsClient webSocket;
 
+#if DISPLAY_ENABLED
 // 7-Segment Display
 TM1637Display display(DISPLAY_CLK_PIN, DISPLAY_DIO_PIN);
+#endif
 
 // Timer display variables
 int currentTimerSeconds = 0;
@@ -52,9 +59,11 @@ unsigned long lastDisplayRefresh = 0;
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
   
+#if DISPLAY_ENABLED
   // Initialize display
   display.setBrightness(0x0f);  // Maximum brightness
   display.showNumberDecEx(0, 0b00100000, true);  // Show "00.0" at startup
+#endif
   
   // Initialize pins
   pinMode(START_BUTTON_PIN, INPUT_PULLUP);
@@ -92,9 +101,13 @@ void loop() {
     unsigned long elapsed = millis() - timerStartTime;
     int estimatedRemaining = lastKnownRemainingMs - elapsed;
     if (estimatedRemaining > 0) {
+#if DISPLAY_ENABLED
       updateDisplay(estimatedRemaining);
+#endif
     } else {
+#if DISPLAY_ENABLED
       updateDisplay(0);
+#endif
     }
   }
   
@@ -251,6 +264,7 @@ void checkTimerStatus() {
   http.end();
 }
 
+#if DISPLAY_ENABLED
 void updateDisplay(int remainingMs) {
   // Only update display at specified refresh rate
   if (millis() - lastDisplayRefresh < DISPLAY_REFRESH_RATE_MS) {
@@ -302,10 +316,13 @@ void updateDisplay(int remainingMs) {
   lastDisplayUpdate = millis();
   lastDisplayRefresh = millis();
 }
+#endif
 
 void updateLEDs(bool running, int remainingMs) {
   // Update display
+#if DISPLAY_ENABLED
   updateDisplay(remainingMs);
+#endif
   
   // Update local countdown tracking
   if (running && remainingMs > 0) {
@@ -339,9 +356,13 @@ void updateLEDs(bool running, int remainingMs) {
     digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
     timerRunning = false;
   } else {
-    // Timer idle/ready - show 00.0 on display (assuming timers are usually under 60 seconds)
+    // Timer idle/ready
+#if DISPLAY_ENABLED
     display.showNumberDecEx(0, 0b00100000, true);  // Show "00.0" with decimal point
     DEBUG_PRINTLN("Display: Timer idle - showing 00.0");
+#else
+    DEBUG_PRINTLN("Timer idle/ready (display disabled)");
+#endif
     digitalWrite(STATUS_LED_PIN, LED_ACTIVE_HIGH ? LOW : HIGH);
     digitalWrite(READY_LED_PIN, LED_ACTIVE_HIGH ? HIGH : LOW);
     timerRunning = false;

@@ -27,11 +27,11 @@ test('settings GET/POST', async () => {
   let res = await req(port, 'GET', '/api/settings');
   assert.equal(res.status, 200);
   const before = JSON.parse(res.text);
-  const next = { ...before.settings, defaultDurationSeconds: 33, presets: [10,20,30] };
+  const next = { ...before.settings, defaultDurationSeconds: 45, presets: [10,20,30] };
   res = await req(port, 'POST', '/api/settings', next);
   assert.equal(res.status, 200);
   const after = JSON.parse(res.text);
-  assert.equal(after.settings.defaultDurationSeconds, 33);
+  assert.equal(after.settings.defaultDurationSeconds, 45);
   assert.deepEqual(after.settings.presets, [10,20,30]);
   await new Promise((r) => s.close(r));
 });

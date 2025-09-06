@@ -30,7 +30,14 @@
 #define STATUS_LED_PIN D8        // Status LED output pin (GPIO 15 - Green - shows timer running/done)
 #define READY_LED_PIN D6         // Ready LED output pin (GPIO 12 - Blue - shows idle/ready state)
 
-// 7-Segment Display pins (TM1637)
+// ============================================================================
+// DISPLAY CONFIGURATION
+// ============================================================================
+// Enable/disable 7-segment display support (true = enabled, false = disabled)
+// Set to false if you don't have a display connected or want to save memory/processing
+#define DISPLAY_ENABLED true
+
+// 7-Segment Display pins (TM1637) - only used if DISPLAY_ENABLED is true
 #define DISPLAY_CLK_PIN D4       // Clock pin for 7-segment display (GPIO 2)
 #define DISPLAY_DIO_PIN D3       // Data pin for 7-segment display (GPIO 0)
 

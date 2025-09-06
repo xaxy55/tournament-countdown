@@ -6,21 +6,24 @@ This Arduino sketch provides physical button control for the Tournament Countdow
 
 - **2 Physical Buttons**: Start and Reset timer controls
 - **2 Status LEDs**: Visual indicators for timer state
-- **7-Segment Display**: Real-time countdown display in MM:SS format
+- **7-Segment Display**: Real-time countdown display in MM:SS format (optional, can be disabled)
 - **WiFi Connectivity**: Connects to tournament countdown server via HTTP API
 - **Real-time Updates**: WebSocket connection for instant state synchronization
 - **Robust Design**: Automatic reconnection and error handling
+- **Configurable Display**: Display can be enabled/disabled via config.h to save memory and processing
 
 ## Hardware Requirements
 
 - ESP8266 Development Board (e.g., NodeMCU ESP8266, Wemos D1 Mini)
-- TM1637 4-digit 7-segment display module
+- **TM1637 4-digit 7-segment display module** (optional - can be disabled in config.h)
 - 2x Push buttons (momentary, normally open)
 - 2x LEDs (different colors recommended - e.g., Green and Blue)
 - 2x 220Ω resistors (for LED current limiting)
 - 2x 10kΩ resistors (for button pull-ups - optional if using internal pull-ups)
 - Breadboard and jumper wires
 - USB cable for programming
+
+**Note**: The 7-segment display is optional. Set `DISPLAY_ENABLED false` in config.h if you don't want to use it.
 
 ## Pin Configuration
 
@@ -138,22 +141,30 @@ In Arduino IDE, go to **Tools > Manage Libraries** and install:
 
 - **ArduinoJson** by Benoit Blanchon (version 6.x)
 - **WebSockets** by Markus Sattler
-- **TM1637** by Avishay Orpaz (for 7-segment display)
+- **TM1637** by Avishay Orpaz (for 7-segment display - only required if `DISPLAY_ENABLED` is `true`)
 
 ### 3. Configure the Code
 
-Copy `config.h.example` to `config.h` and update these values:
+Copy `examples/config_example.h` to `tournament_controller/config.h` and update these values:
 
 ```cpp
 // WiFi credentials
-const char* WIFI_SSID = "YOUR_WIFI_SSID";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+#define WIFI_SSID "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
 
 // Server configuration
-const char* SERVER_HOST = "192.168.1.100";  // Your server's IP address
-const int SERVER_PORT = 3000;
-const char* SERVER_URL = "http://192.168.1.100:3000";  // Your server's URL
+#define SERVER_HOST "192.168.1.100"    // Your server's IP address
+#define SERVER_PORT 3000
+#define SERVER_URL "http://192.168.1.100:3000"  // Your server's URL
+
+// Display configuration (optional)
+#define DISPLAY_ENABLED true  // Set to false to disable display and save memory
 ```
+
+**Important Display Configuration:**
+- Set `DISPLAY_ENABLED true` if you have a TM1637 display connected
+- Set `DISPLAY_ENABLED false` if you don't have a display or want to save memory
+- When disabled, the TM1637Display library is not required
 
 ### 4. Upload to ESP8266
 
@@ -166,10 +177,13 @@ const char* SERVER_URL = "http://192.168.1.100:3000";  // Your server's URL
 
 ### Display Features
 
-The 7-segment display shows:
-- **Current countdown time** in MM:SS format (e.g., "05:30" for 5 minutes 30 seconds)
-- **"00:00"** when timer is idle or reset
+The 7-segment display (when `DISPLAY_ENABLED` is `true`) shows:
+- **Current countdown time** in MM:SS format for times ≥60 seconds (e.g., "01:30")
+- **SS.T format** for times <60 seconds (e.g., "45.6" for 45.6 seconds)
+- **"00.0"** when timer is idle or reset
 - **Real-time updates** synchronized with the web interface
+
+**Note**: If `DISPLAY_ENABLED` is set to `false`, all display functionality is disabled to save memory and processing power.
 
 ### LED Status Indicators
 
@@ -248,6 +262,10 @@ You can extend the design by:
 - Implementing different timer presets
 - Adding buzzer for audio feedback
 - Using RGB LEDs for more status colors
+
+### Display Configuration
+
+For detailed information about configuring the 7-segment display, including how to enable/disable it and troubleshooting, see [DISPLAY_CONFIGURATION.md](DISPLAY_CONFIGURATION.md).
 
 ## License
 
