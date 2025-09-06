@@ -10,7 +10,7 @@ services:
     environment:
       - GPIO_ENABLED=true
       - RELAY_PIN=17  # BCM pin 17
-      - RELAY_ACTIVE_HIGH=0  # Active LOW relay (LOW = ON, HIGH = OFF)
+      - RELAY_ACTIVE_HIGH=1  # Active HIGH relay (HIGH = ON, LOW = OFF)
     volumes:
       # Mount GPIO devices for Raspberry Pi GPIO access
       - /dev/gpiomem:/dev/gpiomem
@@ -44,7 +44,7 @@ services:
       - GPIO_ENABLED=true
       - GPIO_SERVICE_URL=http://gpio-service:3001  # Connect to GPIO service
       - RELAY_PIN=17  # For reference/logging
-      - RELAY_ACTIVE_HIGH=0  # For reference/logging
+      - RELAY_ACTIVE_HIGH=1  # For reference/logging
       - BLINK_HZ=2
       - BLINK_DURATION_MS=3000  # How long LED stays on (3 seconds)
     volumes:
