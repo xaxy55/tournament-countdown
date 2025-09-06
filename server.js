@@ -333,7 +333,8 @@ function startTicker() {
       io.emit('done');
       console.log(`[API] Countdown finished, starting relay blink`);
       // Turn on LED when countdown is done (will stay on for configured duration)
-      try { relay.startBlinking(); } catch {}
+      const blinkDuration = Number(process.env.BLINK_DURATION_MS ?? relay.defaultDurationMs);
+      try { relay.startBlinking(blinkDuration); } catch {}
     }
   }, 1000); // 1 FPS updates; client animates locally
 }
