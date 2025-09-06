@@ -6,8 +6,8 @@
     30
   ],
   "gpio": {
-    "enabled": false,
-    "relayPin": 17,
+    "enabled": true,
+    "relayPin": 529,
     "relayActiveHigh": true,
     "blinkHz": 2,
     "blinkDurationMs": 10000

@@ -7,9 +7,9 @@ services:
     environment:
       - NODE_ENV=production
       - GPIO_ENABLED=true
-      - USE_PIGPIO=true  # Use pigpio for better GPIO control
+      - USE_PIGPIO=false  # Disable pigpio, use direct GPIO access
       - PIGPIO_ADDR=host.docker.internal  # Connect to host pigpio daemon
-      - RELAY_PIN=17  # BCM pin 17 (pigpio handles numbering correctly)
+      - RELAY_PIN=529  # Direct GPIO pin number that works on Pi 4
       - RELAY_PIN_FALLBACK=529  # Direct GPIO pin number fallback for Pi 4
       - RELAY_ACTIVE_HIGH=1
       - BLINK_HZ=2
