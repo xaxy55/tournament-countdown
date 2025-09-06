@@ -102,10 +102,12 @@ class RelayController {
 
   setRelay(on) {
     this.currentOn = !!on;
+    console.log(`[GPIO] Setting relay to ${on ? 'HIGH' : 'LOW'}`);
     if (!this.enabled || !this.pin) return;
     const level = this.activeHigh ? (on ? 1 : 0) : (on ? 0 : 1);
     try {
       this.pin.writeSync(level);
+      console.log(`[GPIO] Successfully wrote level ${level} to pin ${this.pinNumber}`);
     } catch (e) {
       console.warn('[GPIO] writeSync failed:', e?.message || e);
     }
@@ -114,6 +116,7 @@ class RelayController {
   startBlinking(durationMs) {
     if (!this.enabled || !this.pin) return;
     const dur = Number.isFinite(durationMs) ? Math.max(0, Math.floor(durationMs)) : this.defaultDurationMs;
+    console.log(`[GPIO] Starting LED blink for ${dur}ms`);
     this.stopBlinking();
     
     // For LEDs with built-in blinking, just turn on and leave it on
@@ -121,12 +124,16 @@ class RelayController {
     
     // Set timeout to turn off after duration (if duration > 0)
     if (dur > 0) {
-      this.stopTimeout = setTimeout(() => this.stopBlinking(), dur);
+      this.stopTimeout = setTimeout(() => {
+        console.log(`[GPIO] Blink duration expired, stopping`);
+        this.stopBlinking();
+      }, dur);
     }
     // If duration is 0 or negative, LED stays on until manually stopped
   }
 
   stopBlinking() {
+    console.log(`[GPIO] Stopping LED blink`);
     if (this.blinkInterval) { clearInterval(this.blinkInterval); this.blinkInterval = null; }
     if (this.stopTimeout) { clearTimeout(this.stopTimeout); this.stopTimeout = null; }
     this.setRelay(false);
@@ -256,8 +263,9 @@ function startTicker() {
       countdown.running = false;
       stopTicker();
       io.emit('done');
-  // Turn on LED when countdown is done (will stay on for configured duration)
-  try { relay.startBlinking(); } catch {}
+      console.log(`[API] Countdown finished, starting relay blink`);
+      // Turn on LED when countdown is done (will stay on for configured duration)
+      try { relay.startBlinking(); } catch {}
     }
   }, 1000); // 1 FPS updates; client animates locally
 }
@@ -357,6 +365,7 @@ app.post('/api/start', (req, res) => {
   countdown.durationMs = d;
   countdown.endTime = Date.now() + d;
   countdown.running = d > 0;
+  console.log(`[API] Starting countdown for ${d}ms, stopping relay`);
   try { relay.stopBlinking(); } catch {}
   const state = getState();
   io.emit('start', state);
@@ -373,6 +382,7 @@ app.post('/api/reset', (req, res) => {
   countdown.endTime = null;
   countdown.running = false;
   stopTicker();
+  console.log(`[API] Resetting countdown, stopping relay`);
   try { relay.stopBlinking(); } catch {}
   const state = getState();
   io.emit('reset', state);
