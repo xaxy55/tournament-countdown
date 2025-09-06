@@ -6,6 +6,8 @@ This Arduino sketch provides physical button control for the Tournament Countdow
 
 - **2 Physical Buttons**: Start and Reset timer controls
 - **2 Status LEDs**: Visual indicators for timer state
+- **Connection Diagnostics**: LED flashing patterns indicate WiFi/WebSocket connection issues
+- **Auto-Reconnection**: Automatically attempts to reconnect lost WiFi and WebSocket connections
 - **7-Segment Display**: Real-time countdown display in MM:SS format (optional, can be disabled)
 - **WiFi Connectivity**: Connects to tournament countdown server via HTTP API
 - **Real-time Updates**: WebSocket connection for instant state synchronization
@@ -218,10 +220,23 @@ Open the Serial Monitor (115200 baud) to see:
 
 ## Troubleshooting
 
-### WiFi Connection Issues
-- Verify SSID and password are correct
-- Ensure ESP32 is within WiFi range
-- Check that your WiFi network is 2.4GHz (ESP32 doesn't support 5GHz)
+### Connection Issues
+
+#### WiFi Connection Issues
+- **Symptom**: Ready LED flashing FAST (200ms intervals)
+- **Solutions**:
+  - Verify SSID and password are correct in config.h
+  - Ensure ESP8266 is within WiFi range
+  - Check that your WiFi network is 2.4GHz (ESP8266 doesn't support 5GHz)
+  - Check router settings - some routers have issues with IoT devices
+
+#### WebSocket Connection Issues
+- **Symptom**: Ready LED flashing SLOW (1000ms intervals)
+- **Solutions**:
+  - Verify the server IP address and port in config.h
+  - Ensure the tournament countdown server is running
+  - Check firewall settings on server
+  - Verify network connectivity between ESP8266 and server
 
 ### Server Connection Issues
 - Verify the server IP address and port
