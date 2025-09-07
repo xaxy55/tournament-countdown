@@ -43,80 +43,6 @@ let countdown = {
 };
 let intervalHandle = null;
 
-// HTTP-based GPIO/Relay controller (communicates with Python GPIO service)
-class RelayController {
-  constructor(options = {}) {
-    this.enabled = false; // Disabled - GPIO removed
-    this.pinNumber = options.pinNumber ?? 17;
-    this.activeHigh = options.activeHigh ?? false;
-    this.defaultDurationMs = Number(options.defaultDurationMs ?? 3000);
-    this.currentOn = false;
-    this.blinkTimeout = null;
-  }
-
-  async init() {
-    console.log('[GPIO] GPIO functionality disabled');
-  }
-
-  async setRelay(on) {
-    console.log(`[GPIO] Mock: Would set relay ${on ? 'ON' : 'OFF'}`);
-    this.currentOn = on;
-    return true;
-  }
-
-  async startBlinking(durationMs) {
-    const dur = Number.isFinite(durationMs) ? Math.max(0, Math.floor(durationMs)) : this.defaultDurationMs;
-    console.log(`[GPIO] Mock: Would blink relay for ${dur}ms`);
-    
-    // Stop any existing blink
-    this.stopBlinking();
-    
-    // Simulate blink timing
-    this.currentOn = true;
-    if (dur > 0) {
-      this.blinkTimeout = setTimeout(() => {
-        console.log(`[GPIO] Mock: Blink duration expired`);
-        this.currentOn = false;
-      }, dur);
-    }
-  }
-
-  stopBlinking() {
-    if (this.blinkTimeout) {
-      clearTimeout(this.blinkTimeout);
-      this.blinkTimeout = null;
-    }
-    console.log('[GPIO] Mock: Stopping blink, setting relay OFF');
-    this.currentOn = false;
-  }
-
-  dispose() {
-    console.log('[GPIO] Disposing relay controller');
-    this.stopBlinking();
-  }
-
-  static async forceCleanup() {
-    console.log('[GPIO] Mock: Force cleanup - relay set to OFF');
-  }
-}
-
-// Configure relay from environment - simplified 
-const gpioEnabled = false; // Disabled - GPIO removed
-async function initializeRelay() {
-  const relay = new RelayController({
-    enabled: false, // Always disabled
-    pinNumber: Number(process.env.RELAY_PIN ?? 17),
-    activeHigh: true,
-    defaultDurationMs: Number(process.env.BLINK_DURATION_MS ?? 3000)
-  });
-
-  await relay.init();
-  return relay;
-}
-    
-// Initialize relay controller
-const relay = await initializeRelay();
-
 // Settings persistence
 const settingsDir = path.join(__dirname, 'data');
 const settingsPath = path.join(settingsDir, 'settings.json');
@@ -203,10 +129,6 @@ function startTicker() {
       countdown.running = false;
       stopTicker();
       io.emit('done');
-      console.log(`[API] Countdown finished, starting relay blink`);
-      // Turn on LED when countdown is done (will stay on for configured duration)
-      const blinkDuration = Number(process.env.BLINK_DURATION_MS ?? relay.defaultDurationMs);
-      try { relay.startBlinking(blinkDuration); } catch {}
     }
   }, 1000); // 1 FPS updates; client animates locally
 }
