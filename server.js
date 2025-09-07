@@ -103,7 +103,7 @@ try {
 
 function getState() {
   const now = Date.now();
-  const remainingMs = countdown.running && countdown.endTime ? Math.max(0, countdown.endTime - now) : 0;
+  const remainingMs = countdown.running && countdown.endTime ? Math.max(0, countdown.endTime - now) : countdown.durationMs;
   const running = countdown.running && remainingMs > 0;
   return {
     durationMs: countdown.durationMs,
