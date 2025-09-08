@@ -2,6 +2,7 @@ import express from 'express';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
+import RateLimit from 'express-rate-limit';
 import { createRequire } from 'module';
 import swaggerUi from 'swagger-ui-express';
 import fs from 'fs';
@@ -9,6 +10,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const app = express();
+
+// Rate limiter for control interface (max 100 requests/IP per 15 min)
+const controlLimiter = RateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
+
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
   cors: {
@@ -263,7 +271,7 @@ app.get('/api/state', (_req, res) => {
 });
 
 // Mobile control interface
-app.get('/c', (_req, res) => {
+app.get('/c', controlLimiter, (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'control.html'));
 });
 
