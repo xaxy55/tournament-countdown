@@ -19,6 +19,6 @@
     "express-rate-limit": "^8.1.0"
   },
   "devDependencies": {
-    "playwright": "^1.46.0"
+    "playwright": "^1.55.1"
   }
 }
